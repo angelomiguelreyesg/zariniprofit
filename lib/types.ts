@@ -46,6 +46,7 @@ export const METODOS_PAGO = [
   "Tarjeta",
   "Transferencia",
   "Nequi/Daviplata",
+  "Binance",
   "Crédito",
 ];
 
