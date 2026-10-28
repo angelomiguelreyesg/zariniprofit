@@ -1,15 +1,14 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import Logo from "@/components/logo";
 
-function LoginForm() {
+export default function LoginPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -33,7 +32,8 @@ function LoginForm() {
       );
       return;
     }
-    const next = searchParams.get("next") || "/app/dashboard";
+    const params = new URLSearchParams(window.location.search);
+    const next = params.get("next") || "/app/dashboard";
     router.push(next);
     router.refresh();
   }
@@ -116,13 +116,5 @@ function LoginForm() {
         </Link>
       </p>
     </div>
-  );
-}
-
-export default function LoginPage() {
-  return (
-    <Suspense fallback={null}>
-      <LoginForm />
-    </Suspense>
   );
 }
