@@ -11,6 +11,9 @@ import {
   Receipt,
   PackageOpen,
   Percent,
+  ShoppingCart,
+  Plus,
+  Scale,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -30,14 +33,39 @@ import type { Venta, Gasto, Producto } from "@/lib/types";
 
 const WEEKDAYS = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
 
-type Totals = {
-  hoyVentas: number;
-  hoyGastos: number;
-  ayerVentas: number;
-  ayerGastos: number;
-  mesVentas: number;
-  mesGastos: number;
+type Period = "hoy" | "semana" | "mes";
+
+const PERIOD_LABELS: Record<Period, string> = {
+  hoy: "Hoy",
+  semana: "Semana",
+  mes: "Mes",
 };
+
+function periodRange(period: Period) {
+  const now = new Date();
+  const end = now.getTime();
+  const todayStart = startOfDay(now).getTime();
+  let start: number;
+  let prevStart: number;
+  let prevEnd: number;
+
+  if (period === "hoy") {
+    start = todayStart;
+    prevStart = todayStart - 86400000;
+    prevEnd = todayStart;
+  } else if (period === "semana") {
+    start = todayStart - 6 * 86400000;
+    prevStart = start - 7 * 86400000;
+    prevEnd = start;
+  } else {
+    start = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+    const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    prevStart = prevMonth.getTime();
+    prevEnd = start;
+  }
+
+  return { start, end, prevStart, prevEnd };
+}
 
 function pctLabel(hoy: number, ayer: number): { text: string; positive: boolean } | null {
   if (ayer === 0) return hoy > 0 ? { text: "Nuevo", positive: true } : null;
@@ -57,6 +85,7 @@ export default function DashboardPage() {
   const [gastos, setGastos] = useState<Gasto[]>([]);
   const [productos, setProductos] = useState<Producto[]>([]);
   const [loading, setLoading] = useState(true);
+  const [period, setPeriod] = useState<Period>("hoy");
 
   const moneda = profile?.moneda || "COP";
 
@@ -71,12 +100,12 @@ export default function DashboardPage() {
           .from("ventas")
           .select("id, producto_id, cantidad, total, metodo_pago, fecha")
           .order("fecha", { ascending: false })
-          .limit(500),
+          .limit(1000),
         supabase
           .from("gastos")
           .select("id, monto, categoria, fecha")
           .order("fecha", { ascending: false })
-          .limit(500),
+          .limit(1000),
         supabase.from("productos").select("id, nombre, stock").limit(1000),
       ]);
       setVentas((v.data as Venta[]) ?? []);
@@ -88,34 +117,30 @@ export default function DashboardPage() {
     load();
   }, [user]);
 
-  const totals = useMemo<Totals>(() => {
-    const now = new Date();
-    const todayStart = startOfDay(now).getTime();
-    const yesterdayStart = todayStart - 86400000;
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+  const sums = useMemo(() => {
+    const { start, end, prevStart, prevEnd } = periodRange(period);
+    let ingresos = 0;
+    let egresos = 0;
+    let ingresosPrev = 0;
+    let egresosPrev = 0;
 
-    let hoyVentas = 0;
-    let ayerVentas = 0;
-    let mesVentas = 0;
     for (const v of ventas) {
       const t = new Date(v.fecha).getTime();
-      if (t >= todayStart) hoyVentas += v.total;
-      else if (t >= yesterdayStart) ayerVentas += v.total;
-      if (t >= monthStart) mesVentas += v.total;
+      if (t >= start && t <= end) ingresos += v.total;
+      else if (t >= prevStart && t < prevEnd) ingresosPrev += v.total;
     }
-
-    let hoyGastos = 0;
-    let ayerGastos = 0;
-    let mesGastos = 0;
     for (const g of gastos) {
       const t = new Date(g.fecha).getTime();
-      if (t >= todayStart) hoyGastos += g.monto;
-      else if (t >= yesterdayStart) ayerGastos += g.monto;
-      if (t >= monthStart) mesGastos += g.monto;
+      if (t >= start && t <= end) egresos += g.monto;
+      else if (t >= prevStart && t < prevEnd) egresosPrev += g.monto;
     }
 
-    return { hoyVentas, hoyGastos, ayerVentas, ayerGastos, mesVentas, mesGastos };
-  }, [ventas, gastos]);
+    const balance = ingresos - egresos;
+    const balancePrev = ingresosPrev - egresosPrev;
+    const margen = ingresos > 0 ? (balance / ingresos) * 100 : 0;
+
+    return { ingresos, egresos, balance, ingresosPrev, egresosPrev, balancePrev, margen };
+  }, [ventas, gastos, period]);
 
   const chartData = useMemo(() => {
     const days: { day: string; ventas: number; gastos: number }[] = [];
@@ -167,6 +192,7 @@ export default function DashboardPage() {
     return (
       <div className="space-y-4">
         <Skeleton className="h-9 w-56" />
+        <Skeleton className="h-36" />
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           {[...Array(4)].map((_, i) => (
             <Skeleton key={i} className="h-28" />
@@ -177,58 +203,118 @@ export default function DashboardPage() {
     );
   }
 
-  const hoyGanancia = totals.hoyVentas - totals.hoyGastos;
-  const ayerGanancia = totals.ayerVentas - totals.ayerGastos;
-  const mesGanancia = totals.mesVentas - totals.mesGastos;
-  const margenMes = totals.mesVentas > 0 ? (mesGanancia / totals.mesVentas) * 100 : 0;
-
   const gridColor = isDark ? "#1e293b" : "#f1f5f9";
   const tickColor = isDark ? "#94a3b8" : "#64748b";
   const tooltipStyle = isDark
     ? { backgroundColor: "#0f172a", border: "1px solid #334155", borderRadius: 12, fontSize: 13 }
     : { borderRadius: 12, border: "1px solid #e2e8f0", fontSize: 13 };
 
+  const balanceTrend = pctLabel(sums.balance, sums.balancePrev);
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-          Hola, {profile?.nombre || "bienvenido"} 👋
-        </h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400">
-          Así va tu negocio{" "}
-          {profile?.nombre_negocio ? `— ${profile.nombre_negocio}` : ""}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+            Hola, {profile?.nombre || "bienvenido"} 👋
+          </h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            {profile?.nombre_negocio ? `${profile.nombre_negocio} · ` : ""}
+            Así va tu negocio
+          </p>
+        </div>
+        <div className="flex rounded-xl border border-slate-200 bg-white p-1 dark:border-slate-700 dark:bg-slate-900">
+          {(Object.keys(PERIOD_LABELS) as Period[]).map((p) => (
+            <button
+              key={p}
+              onClick={() => setPeriod(p)}
+              className={`rounded-lg px-3.5 py-1.5 text-sm font-medium transition ${
+                period === p
+                  ? "bg-brand-600 text-white shadow-sm"
+                  : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+              }`}
+            >
+              {PERIOD_LABELS[p]}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Tarjeta de balance */}
+      <div className="overflow-hidden rounded-2xl bg-gradient-to-br from-brand-600 via-brand-600 to-emerald-500 p-6 text-white shadow-lg">
+        <div className="flex items-center justify-between">
+          <span className="inline-flex items-center gap-2 text-sm font-medium text-emerald-50/90">
+            <Scale className="h-4 w-4" /> Balance · {PERIOD_LABELS[period]}
+          </span>
+          {balanceTrend && (
+            <span
+              className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${
+                balanceTrend.positive ? "bg-white/20" : "bg-rose-500/30"
+              }`}
+            >
+              {balanceTrend.positive ? (
+                <TrendingUp className="h-3.5 w-3.5" />
+              ) : (
+                <TrendingDown className="h-3.5 w-3.5" />
+              )}
+              {balanceTrend.text}
+            </span>
+          )}
+        </div>
+        <p className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">
+          {formatMoney(sums.balance, moneda)}
         </p>
+        <div className="mt-5 grid grid-cols-2 gap-4 border-t border-white/20 pt-4">
+          <div>
+            <p className="flex items-center gap-1.5 text-xs font-medium text-emerald-50/80">
+              <TrendingUp className="h-3.5 w-3.5" /> Ingresos
+            </p>
+            <p className="mt-0.5 text-lg font-bold">{formatMoney(sums.ingresos, moneda)}</p>
+          </div>
+          <div>
+            <p className="flex items-center gap-1.5 text-xs font-medium text-emerald-50/80">
+              <TrendingDown className="h-3.5 w-3.5" /> Egresos
+            </p>
+            <p className="mt-0.5 text-lg font-bold">{formatMoney(sums.egresos, moneda)}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Acciones rápidas */}
+      <div className="grid grid-cols-3 gap-3">
+        <QuickAction href="/ventas" icon={<ShoppingCart className="h-5 w-5" />} label="Venta" />
+        <QuickAction href="/gastos" icon={<Wallet className="h-5 w-5" />} label="Gasto" />
+        <QuickAction href="/productos" icon={<Package className="h-5 w-5" />} label="Producto" />
       </div>
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard
-          label="Ventas de hoy"
-          value={formatMoney(totals.hoyVentas, moneda)}
+          label={`Ingresos (${PERIOD_LABELS[period].toLowerCase()})`}
+          value={formatMoney(sums.ingresos, moneda)}
           icon={<TrendingUp className="h-5 w-5" />}
           tone="green"
-          trend={pctLabel(totals.hoyVentas, totals.ayerVentas)}
+          trend={pctLabel(sums.ingresos, sums.ingresosPrev)}
         />
         <StatCard
-          label="Gastos de hoy"
-          value={formatMoney(totals.hoyGastos, moneda)}
+          label={`Egresos (${PERIOD_LABELS[period].toLowerCase()})`}
+          value={formatMoney(sums.egresos, moneda)}
           icon={<TrendingDown className="h-5 w-5" />}
           tone="rose"
-          trend={pctLabel(totals.hoyGastos, totals.ayerGastos)}
+          trend={pctLabel(sums.egresos, sums.egresosPrev)}
           invertTrend
         />
         <StatCard
-          label="Ganancia de hoy"
-          value={formatMoney(hoyGanancia, moneda)}
-          icon={<Wallet className="h-5 w-5" />}
-          tone={hoyGanancia >= 0 ? "green" : "rose"}
-          trend={pctLabel(hoyGanancia, ayerGanancia)}
-        />
-        <StatCard
           label="Margen de ganancia"
-          value={`${margenMes.toFixed(1)}%`}
+          value={`${sums.margen.toFixed(1)}%`}
           icon={<Percent className="h-5 w-5" />}
           tone="blue"
-          hint="este mes"
+          hint="del período"
+        />
+        <StatCard
+          label="Productos"
+          value={String(productos.length)}
+          icon={<Package className="h-5 w-5" />}
+          tone="blue"
         />
       </div>
 
@@ -272,32 +358,10 @@ export default function DashboardPage() {
           </div>
         </Card>
 
-        <div className="space-y-6">
-          <Card>
-            <h2 className="mb-4 font-semibold text-slate-900 dark:text-white">
-              Resumen del mes
-            </h2>
-            <dl className="space-y-3 text-sm">
-              <SummaryRow label="Ventas" value={formatMoney(totals.mesVentas, moneda)} positive />
-              <SummaryRow label="Gastos" value={formatMoney(totals.mesGastos, moneda)} />
-              <div className="border-t border-slate-100 pt-3 dark:border-slate-800">
-                <SummaryRow
-                  label="Ganancia neta"
-                  value={formatMoney(mesGanancia, moneda)}
-                  positive={mesGanancia >= 0}
-                  bold
-                />
-              </div>
-            </dl>
-          </Card>
-        </div>
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <div className="mb-4 flex items-center justify-between">
             <h2 className="font-semibold text-slate-900 dark:text-white">
-              Productos más vendidos
+              Más vendidos
             </h2>
             <Link href="/productos" className="text-sm font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300">
               Inventario
@@ -325,7 +389,9 @@ export default function DashboardPage() {
             </ul>
           )}
         </Card>
+      </div>
 
+      <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <div className="mb-4 flex items-center justify-between">
             <h2 className="font-semibold text-slate-900 dark:text-white">
@@ -360,41 +426,65 @@ export default function DashboardPage() {
             </ul>
           )}
         </Card>
-      </div>
 
-      {ventas.length > 0 && (
-        <Card>
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="font-semibold text-slate-900 dark:text-white">
-              Últimas ventas
-            </h2>
-            <Link href="/ventas" className="inline-flex items-center gap-1 text-sm font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300">
-              Ver todas <ArrowRight className="h-4 w-4" />
-            </Link>
-          </div>
-          <ul className="divide-y divide-slate-100 dark:divide-slate-800">
-            {ventas.slice(0, 5).map((v) => (
-              <li key={v.id} className="flex items-center gap-3 py-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400">
-                  <Receipt className="h-4 w-4" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-slate-700 dark:text-slate-200">
-                    {v.descripcion || "Venta"}
-                  </p>
-                  <p className="text-xs text-slate-400 dark:text-slate-500">
-                    {new Date(v.fecha).toLocaleDateString("es-CO", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })} · {v.metodo_pago}
-                  </p>
-                </div>
-                <span className="text-sm font-semibold text-slate-900 dark:text-white">
-                  {formatMoney(v.total, moneda)}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </Card>
-      )}
+        {ventas.length > 0 && (
+          <Card>
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="font-semibold text-slate-900 dark:text-white">
+                Últimas ventas
+              </h2>
+              <Link href="/ventas" className="inline-flex items-center gap-1 text-sm font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300">
+                Ver todas <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
+            <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+              {ventas.slice(0, 5).map((v) => (
+                <li key={v.id} className="flex items-center gap-3 py-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400">
+                    <Receipt className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-slate-700 dark:text-slate-200">
+                      {v.descripcion || "Venta"}
+                    </p>
+                    <p className="text-xs text-slate-400 dark:text-slate-500">
+                      {new Date(v.fecha).toLocaleDateString("es-CO", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })} · {v.metodo_pago}
+                    </p>
+                  </div>
+                  <span className="text-sm font-semibold text-slate-900 dark:text-white">
+                    {formatMoney(v.total, moneda)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        )}
+      </div>
     </div>
+  );
+}
+
+function QuickAction({
+  href,
+  icon,
+  label,
+}: {
+  href: string;
+  icon: React.ReactNode;
+  label: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="flex flex-col items-center gap-2 rounded-2xl border border-slate-200/70 bg-white p-4 shadow-card transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-md dark:border-slate-800 dark:bg-slate-900 dark:hover:border-brand-500/50"
+    >
+      <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400">
+        {icon}
+      </span>
+      <span className="inline-flex items-center gap-1 text-sm font-semibold text-slate-700 dark:text-slate-200">
+        <Plus className="h-3.5 w-3.5" /> {label}
+      </span>
+    </Link>
   );
 }
 
@@ -434,7 +524,7 @@ function StatCard({
         {icon}
       </div>
       <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{label}</p>
-      <div className="mt-0.5 flex items-baseline gap-2">
+      <div className="mt-0.5 flex flex-wrap items-baseline gap-2">
         <p className="truncate text-lg font-bold text-slate-900 sm:text-xl dark:text-white">
           {value}
         </p>
@@ -455,30 +545,5 @@ function StatCard({
         {hint && <span className="text-xs text-slate-400 dark:text-slate-500">{hint}</span>}
       </div>
     </Card>
-  );
-}
-
-function SummaryRow({
-  label,
-  value,
-  positive,
-  bold,
-}: {
-  label: string;
-  value: string;
-  positive?: boolean;
-  bold?: boolean;
-}) {
-  return (
-    <div className="flex items-center justify-between">
-      <dt className="text-slate-500 dark:text-slate-400">{label}</dt>
-      <dd
-        className={`${
-          bold ? "text-base font-bold" : "font-medium"
-        } ${positive ? "text-brand-600 dark:text-brand-400" : "text-slate-900 dark:text-white"}`}
-      >
-        {value}
-      </dd>
-    </div>
   );
 }
