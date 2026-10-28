@@ -82,6 +82,7 @@ export default function GastosPage() {
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
+    if (!user) return;
     setError(null);
     if (!form.descripcion.trim()) {
       setError("La descripción es obligatoria.");
@@ -90,6 +91,7 @@ export default function GastosPage() {
     setSaving(true);
     const supabase = createClient();
     const payload = {
+      user_id: user.id,
       descripcion: form.descripcion.trim(),
       monto: Number(form.monto) || 0,
       categoria: form.categoria || null,

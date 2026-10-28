@@ -82,6 +82,7 @@ export default function VentasPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!user) return;
     setError(null);
     const cantidadNum = Number(cantidad);
     const precioNum = Number(precio);
@@ -102,6 +103,7 @@ export default function VentasPage() {
     setSaving(true);
     const supabase = createClient();
     const { error: insertError } = await supabase.from("ventas").insert({
+      user_id: user.id,
       producto_id: productoId || null,
       descripcion: producto ? producto.nombre : descripcion.trim(),
       cantidad: cantidadNum,

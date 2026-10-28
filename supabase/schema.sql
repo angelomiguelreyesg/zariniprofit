@@ -16,7 +16,7 @@ create table if not exists public.profiles (
 -- 2. Productos / Inventario
 create table if not exists public.productos (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references auth.users (id) on delete cascade,
+  user_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
   nombre text not null,
   categoria text,
   precio_venta numeric(14,2) not null default 0,
@@ -29,7 +29,7 @@ create table if not exists public.productos (
 -- 3. Ventas
 create table if not exists public.ventas (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references auth.users (id) on delete cascade,
+  user_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
   producto_id uuid references public.productos (id) on delete set null,
   descripcion text,
   cantidad numeric(14,2) not null default 1,
@@ -42,7 +42,7 @@ create table if not exists public.ventas (
 -- 4. Gastos
 create table if not exists public.gastos (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references auth.users (id) on delete cascade,
+  user_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
   descripcion text not null,
   monto numeric(14,2) not null default 0,
   categoria text,

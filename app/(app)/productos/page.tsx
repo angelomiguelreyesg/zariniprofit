@@ -124,6 +124,7 @@ export default function ProductosPage() {
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
+    if (!user) return;
     setError(null);
     if (!form.nombre.trim()) {
       setError("El nombre es obligatorio.");
@@ -132,6 +133,7 @@ export default function ProductosPage() {
     setSaving(true);
     const supabase = createClient();
     const payload = {
+      user_id: user.id,
       nombre: form.nombre.trim(),
       categoria: form.categoria.trim() || null,
       precio_venta: Number(form.precio_venta) || 0,
