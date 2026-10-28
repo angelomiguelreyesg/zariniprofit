@@ -1,10 +1,12 @@
+import ThemeToggle from "@/components/theme-toggle";
+
 export default function AuthLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950">
       <div className="hidden w-1/2 flex-col justify-between overflow-hidden bg-gradient-to-br from-brand-700 via-brand-600 to-emerald-500 p-10 text-white lg:flex">
         <div className="flex items-center gap-2.5">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/15 backdrop-blur">
@@ -64,7 +66,10 @@ export default function AuthLayout({
         </p>
       </div>
 
-      <div className="flex w-full items-center justify-center px-6 py-10 lg:w-1/2">
+      <div className="relative flex w-full items-center justify-center px-6 py-10 lg:w-1/2">
+        <div className="absolute right-4 top-4">
+          <ThemeToggle />
+        </div>
         <div className="w-full max-w-md">{children}</div>
       </div>
     </div>

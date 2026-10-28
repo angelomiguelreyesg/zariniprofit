@@ -19,9 +19,9 @@ export default function Logo({
         <TrendingUp className="h-[55%] w-[55%]" strokeWidth={2.5} />
       </div>
       <span
-        className={`${sizes.text} font-bold tracking-tight text-slate-900`}
+        className={`${sizes.text} font-bold tracking-tight text-slate-900 dark:text-white`}
       >
-        Zarini<span className="text-brand-600">Profit</span>
+        Zarini<span className="text-brand-600 dark:text-brand-400">Profit</span>
       </span>
     </div>
   );

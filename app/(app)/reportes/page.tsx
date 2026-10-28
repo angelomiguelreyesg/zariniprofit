@@ -19,6 +19,7 @@ import {
 } from "recharts";
 import { createClient } from "@/lib/supabase/client";
 import { useApp } from "@/components/app-context";
+import { useTheme } from "@/components/theme-provider";
 import { Card, Spinner } from "@/components/ui";
 import {
   formatMoney,
@@ -40,6 +41,8 @@ const PIE_COLORS = [
 
 export default function ReportesPage() {
   const { user, profile } = useApp();
+  const { resolved } = useTheme();
+  const isDark = resolved === "dark";
   const [ventas, setVentas] = useState<Venta[]>([]);
   const [gastos, setGastos] = useState<Gasto[]>([]);
   const [loading, setLoading] = useState(true);
@@ -141,12 +144,17 @@ export default function ReportesPage() {
 
   if (loading) return <Spinner />;
 
+  const tooltipStyle = isDark
+    ? { backgroundColor: "#0f172a", border: "1px solid #334155", borderRadius: 12, fontSize: 13 }
+    : { borderRadius: 12, border: "1px solid #e2e8f0", fontSize: 13 };
+  const legendColor = isDark ? "#cbd5e1" : "#334155";
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Reportes</h1>
-          <p className="text-sm text-slate-500">
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Reportes</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400">
             Analiza el desempeño de tu negocio
           </p>
         </div>
@@ -201,9 +209,9 @@ export default function ReportesPage() {
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
-          <h2 className="mb-4 font-semibold text-slate-900">Ventas por método de pago</h2>
+          <h2 className="mb-4 font-semibold text-slate-900 dark:text-white">Ventas por método de pago</h2>
           {porMetodo.length === 0 ? (
-            <p className="py-10 text-center text-sm text-slate-400">Sin datos en este período.</p>
+            <p className="py-10 text-center text-sm text-slate-400 dark:text-slate-500">Sin datos en este período.</p>
           ) : (
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
@@ -224,9 +232,14 @@ export default function ReportesPage() {
                   </Pie>
                   <Tooltip
                     formatter={(value: number) => formatMoney(value, moneda)}
-                    contentStyle={{ borderRadius: 12, border: "1px solid #e2e8f0", fontSize: 13 }}
+                    contentStyle={tooltipStyle}
+                    labelStyle={{ color: isDark ? "#cbd5e1" : "#0f172a" }}
                   />
-                  <Legend verticalAlign="bottom" height={24} />
+                  <Legend
+                    verticalAlign="bottom"
+                    height={24}
+                    formatter={(value) => <span style={{ color: legendColor, fontSize: 12 }}>{value}</span>}
+                  />
                 </PieChart>
               </ResponsiveContainer>
             </div>
@@ -234,9 +247,9 @@ export default function ReportesPage() {
         </Card>
 
         <Card>
-          <h2 className="mb-4 font-semibold text-slate-900">Gastos por categoría</h2>
+          <h2 className="mb-4 font-semibold text-slate-900 dark:text-white">Gastos por categoría</h2>
           {porCategoria.length === 0 ? (
-            <p className="py-10 text-center text-sm text-slate-400">Sin datos en este período.</p>
+            <p className="py-10 text-center text-sm text-slate-400 dark:text-slate-500">Sin datos en este período.</p>
           ) : (
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
@@ -257,9 +270,14 @@ export default function ReportesPage() {
                   </Pie>
                   <Tooltip
                     formatter={(value: number) => formatMoney(value, moneda)}
-                    contentStyle={{ borderRadius: 12, border: "1px solid #e2e8f0", fontSize: 13 }}
+                    contentStyle={tooltipStyle}
+                    labelStyle={{ color: isDark ? "#cbd5e1" : "#0f172a" }}
                   />
-                  <Legend verticalAlign="bottom" height={24} />
+                  <Legend
+                    verticalAlign="bottom"
+                    height={24}
+                    formatter={(value) => <span style={{ color: legendColor, fontSize: 12 }}>{value}</span>}
+                  />
                 </PieChart>
               </ResponsiveContainer>
             </div>
@@ -270,10 +288,10 @@ export default function ReportesPage() {
       <Card>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <BarChart3 className="h-5 w-5 text-slate-400" />
+            <BarChart3 className="h-5 w-5 text-slate-400 dark:text-slate-500" />
             <div>
-              <h2 className="font-semibold text-slate-900">Exportar datos</h2>
-              <p className="text-sm text-slate-500">
+              <h2 className="font-semibold text-slate-900 dark:text-white">Exportar datos</h2>
+              <p className="text-sm text-slate-500 dark:text-slate-400">
                 Descarga los datos del período en formato CSV
               </p>
             </div>
@@ -304,17 +322,17 @@ function StatCard({
   tone: "green" | "rose" | "blue";
 }) {
   const tones = {
-    green: "bg-brand-50 text-brand-600",
-    rose: "bg-rose-50 text-rose-600",
-    blue: "bg-sky-50 text-sky-600",
+    green: "bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400",
+    rose: "bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400",
+    blue: "bg-sky-50 text-sky-600 dark:bg-sky-500/10 dark:text-sky-400",
   };
   return (
     <Card className="p-4 sm:p-5">
       <div className={`mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl ${tones[tone]}`}>
         {icon}
       </div>
-      <p className="text-xs font-medium text-slate-500">{label}</p>
-      <p className="mt-0.5 truncate text-lg font-bold text-slate-900 sm:text-xl">
+      <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{label}</p>
+      <p className="mt-0.5 truncate text-lg font-bold text-slate-900 sm:text-xl dark:text-white">
         {value}
       </p>
     </Card>

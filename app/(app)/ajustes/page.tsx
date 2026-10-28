@@ -1,14 +1,22 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Save, User } from "lucide-react";
+import { Save, User, Sun, Moon, MonitorSmartphone } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useApp } from "@/components/app-context";
+import { useTheme } from "@/components/theme-provider";
 import { Card } from "@/components/ui";
 import { MONEDAS } from "@/lib/types";
 
+const THEME_OPTIONS = [
+  { value: "light", label: "Claro", icon: Sun },
+  { value: "dark", label: "Oscuro", icon: Moon },
+  { value: "system", label: "Sistema", icon: MonitorSmartphone },
+] as const;
+
 export default function AjustesPage() {
   const { user, profile, loading } = useApp();
+  const { theme, setTheme } = useTheme();
   const [nombre, setNombre] = useState("");
   const [nombreNegocio, setNombreNegocio] = useState("");
   const [moneda, setMoneda] = useState("COP");
@@ -42,8 +50,8 @@ export default function AjustesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Ajustes</h1>
-        <p className="text-sm text-slate-500">
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Ajustes</h1>
+        <p className="text-sm text-slate-500 dark:text-slate-400">
           Personaliza tu perfil y tu negocio
         </p>
       </div>
@@ -56,8 +64,12 @@ export default function AjustesPage() {
                 {(profile?.nombre?.[0] || user?.email?.[0] || "?").toUpperCase()}
               </div>
               <div>
-                <p className="font-semibold text-slate-900">{profile?.nombre || "Usuario"}</p>
-                <p className="text-sm text-slate-500">{profile?.email}</p>
+                <p className="font-semibold text-slate-900 dark:text-white">
+                  {profile?.nombre || "Usuario"}
+                </p>
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  {profile?.email}
+                </p>
               </div>
             </div>
 
@@ -93,7 +105,7 @@ export default function AjustesPage() {
                   </option>
                 ))}
               </select>
-              <p className="mt-1.5 text-xs text-slate-400">
+              <p className="mt-1.5 text-xs text-slate-400 dark:text-slate-500">
                 Se usará para mostrar todos los montos de la app.
               </p>
             </div>
@@ -103,24 +115,52 @@ export default function AjustesPage() {
               {saving ? "Guardando…" : "Guardar cambios"}
             </button>
             {saved && (
-              <span className="ml-3 text-sm font-medium text-brand-600">
+              <span className="ml-3 text-sm font-medium text-brand-600 dark:text-brand-400">
                 ¡Cambios guardados!
               </span>
             )}
           </form>
         </Card>
 
-        <Card>
-          <div className="flex items-center gap-2 text-slate-400">
-            <User className="h-5 w-5" />
-            <h2 className="font-semibold text-slate-900">Cuenta</h2>
-          </div>
-          <p className="mt-2 text-sm text-slate-500">
-            Tu cuenta está protegida con autenticación segura. Para cambiar tu
-            contraseña usa el enlace de recuperación en la pantalla de inicio de
-            sesión.
-          </p>
-        </Card>
+        <div className="space-y-6">
+          <Card>
+            <div className="flex items-center gap-2 text-slate-400 dark:text-slate-500">
+              <User className="h-5 w-5" />
+              <h2 className="font-semibold text-slate-900 dark:text-white">Cuenta</h2>
+            </div>
+            <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+              Tu cuenta está protegida con autenticación segura. Para cambiar tu
+              contraseña usa el enlace de recuperación en la pantalla de inicio de
+              sesión.
+            </p>
+          </Card>
+
+          <Card>
+            <h2 className="mb-3 font-semibold text-slate-900 dark:text-white">
+              Apariencia
+            </h2>
+            <div className="grid grid-cols-3 gap-2">
+              {THEME_OPTIONS.map(({ value, label, icon: Icon }) => {
+                const active = theme === value;
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setTheme(value)}
+                    className={`flex flex-col items-center gap-1.5 rounded-xl border p-3 text-xs font-medium transition ${
+                      active
+                        ? "border-brand-500 bg-brand-50 text-brand-700 dark:bg-brand-500/10 dark:text-brand-400"
+                        : "border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800"
+                    }`}
+                  >
+                    <Icon className="h-5 w-5" />
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+          </Card>
+        </div>
       </div>
     </div>
   );

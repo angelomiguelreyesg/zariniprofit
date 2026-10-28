@@ -48,11 +48,13 @@ export default function RegistroPage() {
   if (success) {
     return (
       <div className="text-center">
-        <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-brand-100 text-brand-600">
+        <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-brand-100 text-brand-600 dark:bg-brand-500/15 dark:text-brand-400">
           <MailCheck className="h-8 w-8" />
         </div>
-        <h2 className="text-2xl font-bold text-slate-900">Revisa tu correo</h2>
-        <p className="mx-auto mt-2 max-w-sm text-sm text-slate-500">
+        <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
+          Revisa tu correo
+        </h2>
+        <p className="mx-auto mt-2 max-w-sm text-sm text-slate-500 dark:text-slate-400">
           Te enviamos un enlace para confirmar tu cuenta. Ábrelo para empezar a
           usar ZariniProfit.
         </p>
@@ -68,8 +70,10 @@ export default function RegistroPage() {
       <div className="mb-8 lg:hidden">
         <Logo />
       </div>
-      <h2 className="text-2xl font-bold text-slate-900">Crear cuenta</h2>
-      <p className="mt-1 text-sm text-slate-500">
+      <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
+        Crear cuenta
+      </h2>
+      <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
         Empieza a controlar tu negocio hoy.
       </p>
 
@@ -92,7 +96,9 @@ export default function RegistroPage() {
         <div>
           <label className="label" htmlFor="negocio">
             Nombre del negocio{" "}
-            <span className="font-normal text-slate-400">(opcional)</span>
+            <span className="font-normal text-slate-400 dark:text-slate-500">
+              (opcional)
+            </span>
           </label>
           <input
             id="negocio"
@@ -138,7 +144,7 @@ export default function RegistroPage() {
         </div>
 
         {error && (
-          <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300">
             {error}
           </div>
         )}
@@ -154,11 +160,11 @@ export default function RegistroPage() {
         </button>
       </form>
 
-      <p className="mt-6 text-center text-sm text-slate-500">
+      <p className="mt-6 text-center text-sm text-slate-500 dark:text-slate-400">
         ¿Ya tienes cuenta?{" "}
         <Link
           href="/login"
-          className="font-semibold text-brand-600 hover:text-brand-700"
+          className="font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300"
         >
           Inicia sesión
         </Link>

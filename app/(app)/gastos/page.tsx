@@ -127,8 +127,8 @@ export default function GastosPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Gastos</h1>
-          <p className="text-sm text-slate-500">Lleva el control de tus egresos</p>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Gastos</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Lleva el control de tus egresos</p>
         </div>
         <button onClick={openNew} className="btn-primary">
           <Plus className="h-4 w-4" /> Nuevo gasto
@@ -153,17 +153,17 @@ export default function GastosPage() {
           }
         />
       ) : (
-        <Card className="divide-y divide-slate-100 p-0">
+        <Card className="divide-y divide-slate-100 p-0 dark:divide-slate-800">
           {gastos.map((g) => (
             <div key={g.id} className="flex items-center gap-3 px-5 py-3.5">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-rose-50 text-rose-600">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400">
                 <ReceiptText className="h-5 w-5" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold text-slate-900">
+                <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">
                   {g.descripcion}
                 </p>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-slate-400 dark:text-slate-500">
                   {formatDateTime(g.fecha)}
                   {g.categoria && (
                     <span className="ml-2">
@@ -172,19 +172,19 @@ export default function GastosPage() {
                   )}
                 </p>
               </div>
-              <p className="text-sm font-bold text-rose-600">
+              <p className="text-sm font-bold text-rose-600 dark:text-rose-400">
                 -{formatMoney(g.monto, moneda)}
               </p>
               <div className="ml-1 flex gap-1">
                 <button
                   onClick={() => openEdit(g)}
-                  className="rounded-lg p-2 text-slate-300 hover:bg-slate-100 hover:text-slate-700"
+                  className="rounded-lg p-2 text-slate-300 hover:bg-slate-100 hover:text-slate-700 dark:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-200"
                 >
                   <Pencil className="h-4 w-4" />
                 </button>
                 <button
                   onClick={() => setToDelete(g)}
-                  className="rounded-lg p-2 text-slate-300 hover:bg-rose-50 hover:text-rose-600"
+                  className="rounded-lg p-2 text-slate-300 hover:bg-rose-50 hover:text-rose-600 dark:text-slate-600 dark:hover:bg-rose-500/10 dark:hover:text-rose-400"
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
@@ -241,7 +241,7 @@ export default function GastosPage() {
           </div>
 
           {error && (
-            <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+            <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300">
               {error}
             </div>
           )}
@@ -266,9 +266,12 @@ export default function GastosPage() {
         onClose={() => setToDelete(null)}
         title="Eliminar gasto"
       >
-        <p className="text-sm text-slate-600">
+        <p className="text-sm text-slate-600 dark:text-slate-300">
           ¿Eliminar el gasto{" "}
-          <span className="font-semibold text-slate-900">{toDelete?.descripcion}</span>?
+          <span className="font-semibold text-slate-900 dark:text-white">
+            {toDelete?.descripcion}
+          </span>
+          ?
         </p>
         <div className="mt-6 flex gap-3">
           <button onClick={() => setToDelete(null)} className="btn-secondary flex-1">
@@ -294,8 +297,8 @@ function MiniStat({
 }) {
   return (
     <Card className="p-4">
-      <p className="text-xs font-medium text-slate-500">{label}</p>
-      <p className={`mt-1 truncate text-base font-bold sm:text-lg ${tone === "rose" ? "text-rose-600" : "text-slate-900"}`}>
+      <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{label}</p>
+      <p className={`mt-1 truncate text-base font-bold sm:text-lg ${tone === "rose" ? "text-rose-600 dark:text-rose-400" : "text-slate-900 dark:text-white"}`}>
         {value}
       </p>
     </Card>

@@ -143,8 +143,8 @@ export default function VentasPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Ventas</h1>
-          <p className="text-sm text-slate-500">Registra y revisa tus ventas</p>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Ventas</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Registra y revisa tus ventas</p>
         </div>
         <button onClick={() => { resetForm(); setFormOpen(true); }} className="btn-primary">
           <Plus className="h-4 w-4" /> Nueva venta
@@ -169,32 +169,32 @@ export default function VentasPage() {
           }
         />
       ) : (
-        <Card className="divide-y divide-slate-100 p-0">
+        <Card className="divide-y divide-slate-100 p-0 dark:divide-slate-800">
           {ventas.map((v) => (
             <div key={v.id} className="flex items-center gap-3 px-5 py-3.5">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400">
                 <Receipt className="h-5 w-5" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold text-slate-900">
+                <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">
                   {v.descripcion || "Venta libre"}
                 </p>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-slate-400 dark:text-slate-500">
                   {formatDateTime(v.fecha)} · {v.metodo_pago}
                   {v.cantidad > 1 ? ` · ${v.cantidad} u.` : ""}
                 </p>
               </div>
               <div className="text-right">
-                <p className="text-sm font-bold text-slate-900">
+                <p className="text-sm font-bold text-slate-900 dark:text-white">
                   {formatMoney(v.total, moneda)}
                 </p>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-slate-400 dark:text-slate-500">
                   {formatMoney(v.precio_unitario, moneda)} c/u
                 </p>
               </div>
               <button
                 onClick={() => setToDelete(v)}
-                className="ml-1 rounded-lg p-2 text-slate-300 hover:bg-rose-50 hover:text-rose-600"
+                className="ml-1 rounded-lg p-2 text-slate-300 hover:bg-rose-50 hover:text-rose-600 dark:text-slate-600 dark:hover:bg-rose-500/10 dark:hover:text-rose-400"
               >
                 <Trash2 className="h-4 w-4" />
               </button>
@@ -278,15 +278,17 @@ export default function VentasPage() {
             </select>
           </div>
 
-          <div className="flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3">
-            <span className="text-sm font-medium text-slate-600">Total</span>
-            <span className="text-lg font-bold text-brand-600">
+          <div className="flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3 dark:bg-slate-800">
+            <span className="text-sm font-medium text-slate-600 dark:text-slate-300">
+              Total
+            </span>
+            <span className="text-lg font-bold text-brand-600 dark:text-brand-400">
               {formatMoney(total, moneda)}
             </span>
           </div>
 
           {error && (
-            <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+            <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300">
               {error}
             </div>
           )}
@@ -311,9 +313,9 @@ export default function VentasPage() {
         onClose={() => setToDelete(null)}
         title="Eliminar venta"
       >
-        <p className="text-sm text-slate-600">
+        <p className="text-sm text-slate-600 dark:text-slate-300">
           ¿Eliminar esta venta por{" "}
-          <span className="font-semibold text-slate-900">
+          <span className="font-semibold text-slate-900 dark:text-white">
             {toDelete ? formatMoney(toDelete.total, moneda) : ""}
           </span>
           ?
@@ -342,8 +344,8 @@ function MiniStat({
 }) {
   return (
     <Card className="p-4">
-      <p className="text-xs font-medium text-slate-500">{label}</p>
-      <p className={`mt-1 truncate text-base font-bold sm:text-lg ${tone === "green" ? "text-brand-600" : "text-slate-900"}`}>
+      <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{label}</p>
+      <p className={`mt-1 truncate text-base font-bold sm:text-lg ${tone === "green" ? "text-brand-600 dark:text-brand-400" : "text-slate-900 dark:text-white"}`}>
         {value}
       </p>
     </Card>

@@ -176,8 +176,8 @@ export default function ProductosPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Productos</h1>
-          <p className="text-sm text-slate-500">
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Productos</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400">
             {productos.length} producto{productos.length !== 1 && "s"} en inventario
           </p>
         </div>
@@ -194,7 +194,7 @@ export default function ProductosPage() {
 
       <div className="flex flex-col gap-3 sm:flex-row">
         <div className="relative flex-1">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
           <input
             className="input pl-9"
             placeholder="Buscar producto…"
@@ -239,7 +239,7 @@ export default function ProductosPage() {
           <Card className="hidden overflow-hidden p-0 md:block">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-slate-100 bg-slate-50/60 text-left text-xs uppercase tracking-wide text-slate-500">
+                <tr className="border-b border-slate-100 bg-slate-50/60 text-left text-xs uppercase tracking-wide text-slate-500 dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-400">
                   <th className="px-5 py-3 font-medium">Producto</th>
                   <th className="px-5 py-3 font-medium">Categoría</th>
                   <th className="px-5 py-3 text-right font-medium">Precio</th>
@@ -248,19 +248,24 @@ export default function ProductosPage() {
                   <th className="px-5 py-3 text-right font-medium">Acciones</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {filtered.map((p) => (
-                  <tr key={p.id} className="hover:bg-slate-50/60">
-                    <td className="px-5 py-3 font-medium text-slate-900">
-                      {p.nombre}
+                  <tr key={p.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40">
+                    <td className="px-5 py-3">
+                      <div className="flex items-center gap-3">
+                        <ProductThumb p={p} size="sm" />
+                        <span className="font-medium text-slate-900 dark:text-white">
+                          {p.nombre}
+                        </span>
+                      </div>
                     </td>
-                    <td className="px-5 py-3 text-slate-500">
+                    <td className="px-5 py-3 text-slate-500 dark:text-slate-400">
                       {p.categoria ? <Badge tone="slate">{p.categoria}</Badge> : "—"}
                     </td>
-                    <td className="px-5 py-3 text-right font-medium text-slate-900">
+                    <td className="px-5 py-3 text-right font-medium text-slate-900 dark:text-white">
                       {formatMoney(p.precio_venta, moneda)}
                     </td>
-                    <td className="px-5 py-3 text-right text-slate-500">
+                    <td className="px-5 py-3 text-right text-slate-500 dark:text-slate-400">
                       {formatMoney(p.costo, moneda)}
                     </td>
                     <td className="px-5 py-3 text-right">
@@ -272,13 +277,13 @@ export default function ProductosPage() {
                       <div className="flex justify-end gap-1">
                         <button
                           onClick={() => openEdit(p)}
-                          className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                          className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200"
                         >
                           <Pencil className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => setToDelete(p)}
-                          className="rounded-lg p-2 text-slate-400 hover:bg-rose-50 hover:text-rose-600"
+                          className="rounded-lg p-2 text-slate-400 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-500/10"
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
@@ -296,33 +301,31 @@ export default function ProductosPage() {
               <Card key={p.id} className="p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
-                      <Package className="h-5 w-5" />
-                    </div>
+                    <ProductThumb p={p} size="md" />
                     <div>
-                      <p className="font-semibold text-slate-900">{p.nombre}</p>
+                      <p className="font-semibold text-slate-900 dark:text-white">{p.nombre}</p>
                       {p.categoria && (
-                        <p className="text-xs text-slate-400">{p.categoria}</p>
+                        <p className="text-xs text-slate-400 dark:text-slate-500">{p.categoria}</p>
                       )}
                     </div>
                   </div>
                   <div className="flex gap-1">
                     <button
                       onClick={() => openEdit(p)}
-                      className="rounded-lg p-2 text-slate-400 hover:bg-slate-100"
+                      className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
                     >
                       <Pencil className="h-4 w-4" />
                     </button>
                     <button
                       onClick={() => setToDelete(p)}
-                      className="rounded-lg p-2 text-slate-400 hover:bg-rose-50 hover:text-rose-600"
+                      className="rounded-lg p-2 text-slate-400 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-500/10"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
                 </div>
-                <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3 text-sm">
-                  <span className="font-semibold text-slate-900">
+                <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3 text-sm dark:border-slate-800">
+                  <span className="font-semibold text-slate-900 dark:text-white">
                     {formatMoney(p.precio_venta, moneda)}
                   </span>
                   <Badge tone={p.stock <= 0 ? "rose" : p.stock <= 5 ? "amber" : "green"}>
@@ -413,7 +416,9 @@ export default function ProductosPage() {
           <div>
             <label className="label">
               URL de imagen{" "}
-              <span className="font-normal text-slate-400">(opcional)</span>
+              <span className="font-normal text-slate-400 dark:text-slate-500">
+                (opcional)
+              </span>
             </label>
             <input
               className="input"
@@ -424,7 +429,7 @@ export default function ProductosPage() {
           </div>
 
           {error && (
-            <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+            <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300">
               {error}
             </div>
           )}
@@ -450,10 +455,12 @@ export default function ProductosPage() {
         onClose={() => setToDelete(null)}
         title="Eliminar producto"
       >
-        <p className="text-sm text-slate-600">
+        <p className="text-sm text-slate-600 dark:text-slate-300">
           ¿Seguro que quieres eliminar{" "}
-          <span className="font-semibold text-slate-900">{toDelete?.nombre}</span>?
-          Esta acción no se puede deshacer.
+          <span className="font-semibold text-slate-900 dark:text-white">
+            {toDelete?.nombre}
+          </span>
+          ? Esta acción no se puede deshacer.
         </p>
         <div className="mt-6 flex gap-3">
           <button
@@ -485,16 +492,39 @@ function MiniStat({
   tone?: "slate" | "green" | "amber";
 }) {
   const tones = {
-    slate: "text-slate-900",
-    green: "text-brand-600",
-    amber: "text-amber-600",
+    slate: "text-slate-900 dark:text-white",
+    green: "text-brand-600 dark:text-brand-400",
+    amber: "text-amber-600 dark:text-amber-400",
   };
   return (
     <Card className="p-4">
-      <p className="text-xs font-medium text-slate-500">{label}</p>
+      <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{label}</p>
       <p className={`mt-1 truncate text-base font-bold sm:text-lg ${tones[tone]}`}>
         {value}
       </p>
     </Card>
+  );
+}
+
+function ProductThumb({ p, size = "sm" }: { p: Producto; size?: "sm" | "md" }) {
+  const sizes = size === "sm" ? "h-9 w-9" : "h-11 w-11";
+  if (p.imagen_url) {
+    return (
+      <img
+        src={p.imagen_url}
+        alt={p.nombre}
+        className={`${sizes} shrink-0 rounded-lg object-cover ring-1 ring-slate-200 dark:ring-slate-700`}
+        onError={(e) => {
+          (e.currentTarget as HTMLImageElement).style.display = "none";
+        }}
+      />
+    );
+  }
+  return (
+    <div
+      className={`${sizes} flex shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400`}
+    >
+      <Package className={size === "sm" ? "h-4 w-4" : "h-5 w-5"} />
+    </div>
   );
 }

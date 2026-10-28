@@ -43,8 +43,10 @@ export default function LoginPage() {
       <div className="mb-8 lg:hidden">
         <Logo />
       </div>
-      <h2 className="text-2xl font-bold text-slate-900">Iniciar sesión</h2>
-      <p className="mt-1 text-sm text-slate-500">
+      <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
+        Iniciar sesión
+      </h2>
+      <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
         Bienvenido de nuevo a tu negocio.
       </p>
 
@@ -72,7 +74,7 @@ export default function LoginPage() {
             </label>
             <Link
               href="/recuperar"
-              className="mb-1.5 text-xs font-medium text-brand-600 hover:text-brand-700"
+              className="mb-1.5 text-xs font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300"
             >
               ¿Olvidaste tu contraseña?
             </Link>
@@ -90,7 +92,7 @@ export default function LoginPage() {
         </div>
 
         {error && (
-          <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300">
             {error}
           </div>
         )}
@@ -106,11 +108,11 @@ export default function LoginPage() {
         </button>
       </form>
 
-      <p className="mt-6 text-center text-sm text-slate-500">
+      <p className="mt-6 text-center text-sm text-slate-500 dark:text-slate-400">
         ¿No tienes cuenta?{" "}
         <Link
           href="/registro"
-          className="font-semibold text-brand-600 hover:text-brand-700"
+          className="font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300"
         >
           Crea una gratis
         </Link>
