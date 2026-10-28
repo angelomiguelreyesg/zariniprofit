@@ -17,11 +17,11 @@ import { AppContext } from "@/components/app-context";
 import Logo from "@/components/logo";
 
 const NAV = [
-  { href: "/app/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/app/productos", label: "Productos", icon: Package },
-  { href: "/app/ventas", label: "Ventas", icon: ShoppingCart },
-  { href: "/app/gastos", label: "Gastos", icon: Wallet },
-  { href: "/app/reportes", label: "Reportes", icon: BarChart3 },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/productos", label: "Productos", icon: Package },
+  { href: "/ventas", label: "Ventas", icon: ShoppingCart },
+  { href: "/gastos", label: "Gastos", icon: Wallet },
+  { href: "/reportes", label: "Reportes", icon: BarChart3 },
 ];
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
@@ -68,9 +68,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </nav>
           <div className="border-t border-slate-100 p-3">
             <Link
-              href="/app/ajustes"
+              href="/ajustes"
               className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
-                pathname.startsWith("/app/ajustes")
+                pathname.startsWith("/ajustes")
                   ? "bg-brand-50 text-brand-700"
                   : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
               }`}
@@ -106,7 +106,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             <Logo size="sm" />
             <div className="flex items-center gap-1">
               <Link
-                href="/app/ajustes"
+                href="/ajustes"
                 className="rounded-lg p-2 text-slate-500 hover:bg-slate-100"
               >
                 <Settings className="h-5 w-5" />

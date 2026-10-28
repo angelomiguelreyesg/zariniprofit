@@ -28,7 +28,7 @@ export default function RegistroPage() {
           nombre,
           nombre_negocio: nombreNegocio,
         },
-        emailRedirectTo: `${window.location.origin}/app/dashboard`,
+        emailRedirectTo: `${window.location.origin}/dashboard`,
       },
     });
     setLoading(false);
@@ -39,7 +39,7 @@ export default function RegistroPage() {
     }
 
     if (data.session) {
-      window.location.href = "/app/dashboard";
+      window.location.href = "/dashboard";
     } else {
       setSuccess(true);
     }

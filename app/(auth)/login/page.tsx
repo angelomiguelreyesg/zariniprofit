@@ -33,7 +33,7 @@ export default function LoginPage() {
       return;
     }
     const params = new URLSearchParams(window.location.search);
-    const next = params.get("next") || "/app/dashboard";
+    const next = params.get("next") || "/dashboard";
     router.push(next);
     router.refresh();
   }

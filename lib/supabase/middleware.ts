@@ -1,7 +1,14 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const PROTECTED_PREFIX = "/app";
+const PROTECTED_PATHS = [
+  "/dashboard",
+  "/productos",
+  "/ventas",
+  "/gastos",
+  "/reportes",
+  "/ajustes",
+];
 const AUTH_PATHS = ["/login", "/registro", "/recuperar"];
 
 export async function updateSession(request: NextRequest) {
@@ -36,7 +43,11 @@ export async function updateSession(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
-  if (!user && pathname.startsWith(PROTECTED_PREFIX)) {
+  const isProtected = PROTECTED_PATHS.some(
+    (p) => pathname === p || pathname.startsWith(`${p}/`),
+  );
+
+  if (!user && isProtected) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.searchParams.set("next", pathname);
@@ -45,7 +56,7 @@ export async function updateSession(request: NextRequest) {
 
   if (user && AUTH_PATHS.includes(pathname)) {
     const url = request.nextUrl.clone();
-    url.pathname = "/app/dashboard";
+    url.pathname = "/dashboard";
     url.search = "";
     return NextResponse.redirect(url);
   }

@@ -201,7 +201,7 @@ export default function DashboardPage() {
               <p className="text-sm text-slate-500">Ventas vs. gastos</p>
             </div>
             <Link
-              href="/app/reportes"
+              href="/reportes"
               className="inline-flex items-center gap-1 text-sm font-medium text-brand-600 hover:text-brand-700"
             >
               Reportes <ArrowRight className="h-4 w-4" />
@@ -250,7 +250,7 @@ export default function DashboardPage() {
         <Card>
           <div className="mb-4 flex items-center justify-between">
             <h2 className="font-semibold text-slate-900">Productos más vendidos</h2>
-            <Link href="/app/productos" className="text-sm font-medium text-brand-600 hover:text-brand-700">
+            <Link href="/productos" className="text-sm font-medium text-brand-600 hover:text-brand-700">
               Inventario
             </Link>
           </div>
@@ -278,7 +278,7 @@ export default function DashboardPage() {
         <Card>
           <div className="mb-4 flex items-center justify-between">
             <h2 className="font-semibold text-slate-900">Stock bajo</h2>
-            <Link href="/app/productos" className="text-sm font-medium text-brand-600 hover:text-brand-700">
+            <Link href="/productos" className="text-sm font-medium text-brand-600 hover:text-brand-700">
               Ver todo
             </Link>
           </div>
@@ -311,7 +311,7 @@ export default function DashboardPage() {
         <Card>
           <div className="mb-4 flex items-center justify-between">
             <h2 className="font-semibold text-slate-900">Últimas ventas</h2>
-            <Link href="/app/ventas" className="inline-flex items-center gap-1 text-sm font-medium text-brand-600 hover:text-brand-700">
+            <Link href="/ventas" className="inline-flex items-center gap-1 text-sm font-medium text-brand-600 hover:text-brand-700">
               Ver todas <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
