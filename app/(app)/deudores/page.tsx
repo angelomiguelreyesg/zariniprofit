@@ -36,6 +36,7 @@ export default function DeudoresPage() {
   const [error, setError] = useState<string | null>(null);
   const [toDelete, setToDelete] = useState<Deudor | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [restaurarStock, setRestaurarStock] = useState(true);
 
   const [nombre, setNombre] = useState("");
   const [telefono, setTelefono] = useState("");
@@ -219,22 +220,24 @@ export default function DeudoresPage() {
     setDeleting(true);
     const supabase = createClient();
 
-    const itemsData = (toDelete.items || []).filter((i) => i.producto_id);
-    for (const it of itemsData) {
-      const { data: prod } = await supabase
-        .from("productos")
-        .select("stock")
-        .eq("id", it.producto_id)
-        .single();
-      if (prod) {
-        await supabase
+    if (restaurarStock) {
+      const itemsData = (toDelete.items || []).filter((i) => i.producto_id);
+      for (const it of itemsData) {
+        const { data: prod } = await supabase
           .from("productos")
-          .update({ stock: Number(prod.stock) + Number(it.cantidad) })
-          .eq("id", it.producto_id);
+          .select("stock")
+          .eq("id", it.producto_id)
+          .single();
+        if (prod) {
+          await supabase
+            .from("productos")
+            .update({ stock: Number(prod.stock) + Number(it.cantidad) })
+            .eq("id", it.producto_id);
+        }
       }
     }
 
-    if (toDelete.venta_id) {
+    if (restaurarStock && toDelete.venta_id) {
       await supabase.from("ventas").delete().eq("id", toDelete.venta_id);
     }
 
@@ -334,7 +337,10 @@ export default function DeudoresPage() {
                   )}
                 </button>
                 <button
-                  onClick={() => setToDelete(d)}
+                  onClick={() => {
+                    setRestaurarStock(true);
+                    setToDelete(d);
+                  }}
                   className="rounded-lg p-2 text-slate-400 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-500/10"
                 >
                   <Trash2 className="h-4 w-4" />
@@ -428,6 +434,19 @@ export default function DeudoresPage() {
           </span>{" "}
           y su deuda de {toDelete ? formatMoney(toDelete.total, moneda) : ""}?
         </p>
+
+        <label className="mt-4 flex cursor-pointer items-center gap-2.5 rounded-xl border border-slate-200 p-3 transition hover:border-slate-300 dark:border-slate-700 dark:hover:border-slate-600">
+          <input
+            type="checkbox"
+            checked={restaurarStock}
+            onChange={(e) => setRestaurarStock(e.target.checked)}
+            className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-800"
+          />
+          <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
+            Devolver productos al inventario
+          </span>
+        </label>
+
         <div className="mt-6 flex gap-3">
           <button onClick={() => setToDelete(null)} className="btn-secondary flex-1">
             Cancelar
