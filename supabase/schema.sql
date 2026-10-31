@@ -49,12 +49,29 @@ create table if not exists public.gastos (
   fecha timestamptz not null default now()
 );
 
+-- 5. Deudores (crédito / morosos)
+create table if not exists public.deudores (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
+  nombre text not null,
+  telefono text,
+  producto_id uuid references public.productos (id) on delete set null,
+  descripcion text,
+  cantidad numeric(14,2) not null default 1,
+  total numeric(14,2) not null default 0,
+  estado text not null default 'pendiente',
+  fecha timestamptz not null default now(),
+  fecha_pago timestamptz,
+  created_at timestamptz not null default now()
+);
+
 -- =============================================================
 -- Índices
 -- =============================================================
 create index if not exists productos_user_idx on public.productos (user_id, created_at desc);
 create index if not exists ventas_user_fecha_idx on public.ventas (user_id, fecha desc);
 create index if not exists gastos_user_fecha_idx on public.gastos (user_id, fecha desc);
+create index if not exists deudores_user_idx on public.deudores (user_id, created_at desc);
 
 -- =============================================================
 -- Row Level Security (RLS)
@@ -63,6 +80,7 @@ alter table public.profiles enable row level security;
 alter table public.productos enable row level security;
 alter table public.ventas enable row level security;
 alter table public.gastos enable row level security;
+alter table public.deudores enable row level security;
 
 -- Profiles
 drop policy if exists "Perfil propio visible/editable" on public.profiles;
@@ -82,6 +100,11 @@ create policy "Ventas propias" on public.ventas
 -- Gastos
 drop policy if exists "Gastos propios" on public.gastos;
 create policy "Gastos propios" on public.gastos
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- Deudores
+drop policy if exists "Deudores propios" on public.deudores;
+create policy "Deudores propios" on public.deudores
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 -- =============================================================

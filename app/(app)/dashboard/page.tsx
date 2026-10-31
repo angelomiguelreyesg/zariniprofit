@@ -14,6 +14,7 @@ import {
   ShoppingCart,
   Plus,
   Scale,
+  HandCoins,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -29,7 +30,7 @@ import { useApp } from "@/components/app-context";
 import { useTheme } from "@/components/theme-provider";
 import { Card, Skeleton, Badge } from "@/components/ui";
 import { formatMoney, startOfDay } from "@/lib/utils";
-import type { Venta, Gasto, Producto } from "@/lib/types";
+import type { Venta, Gasto, Producto, Deudor } from "@/lib/types";
 
 const WEEKDAYS = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
 
@@ -84,6 +85,7 @@ export default function DashboardPage() {
   const [ventas, setVentas] = useState<Venta[]>([]);
   const [gastos, setGastos] = useState<Gasto[]>([]);
   const [productos, setProductos] = useState<Producto[]>([]);
+  const [deudores, setDeudores] = useState<Deudor[]>([]);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<Period>("hoy");
 
@@ -95,7 +97,7 @@ export default function DashboardPage() {
 
     async function load() {
       setLoading(true);
-      const [v, g, p] = await Promise.all([
+      const [v, g, p, d] = await Promise.all([
         supabase
           .from("ventas")
           .select("id, producto_id, cantidad, total, metodo_pago, fecha")
@@ -107,10 +109,12 @@ export default function DashboardPage() {
           .order("fecha", { ascending: false })
           .limit(1000),
         supabase.from("productos").select("id, nombre, stock").limit(1000),
+        supabase.from("deudores").select("id, total, estado").limit(1000),
       ]);
       setVentas((v.data as Venta[]) ?? []);
       setGastos((g.data as Gasto[]) ?? []);
       setProductos((p.data as Producto[]) ?? []);
+      setDeudores((d.data as Deudor[]) ?? []);
       setLoading(false);
     }
 
@@ -141,6 +145,14 @@ export default function DashboardPage() {
 
     return { ingresos, egresos, balance, ingresosPrev, egresosPrev, balancePrev, margen };
   }, [ventas, gastos, period]);
+
+  const porCobrar = useMemo(
+    () =>
+      deudores
+        .filter((d) => d.estado !== "pagado")
+        .reduce((a, d) => a + d.total, 0),
+    [deudores],
+  );
 
   const chartData = useMemo(() => {
     const days: { day: string; ventas: number; gastos: number }[] = [];
@@ -278,6 +290,12 @@ export default function DashboardPage() {
             <p className="mt-0.5 text-lg font-bold">{formatMoney(sums.egresos, moneda)}</p>
           </div>
         </div>
+        {porCobrar > 0 && (
+          <p className="mt-3 flex items-center gap-1.5 border-t border-white/20 pt-3 text-xs font-medium text-emerald-50/90">
+            <HandCoins className="h-3.5 w-3.5" /> Por cobrar (deudores):{" "}
+            {formatMoney(porCobrar, moneda)}
+          </p>
+        )}
       </div>
 
       {/* Acciones rápidas */}

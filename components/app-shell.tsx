@@ -10,6 +10,7 @@ import {
   BarChart3,
   Settings,
   LogOut,
+  HandCoins,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/hooks/use-profile";
@@ -22,6 +23,7 @@ const NAV = [
   { href: "/productos", label: "Productos", icon: Package },
   { href: "/ventas", label: "Ventas", icon: ShoppingCart },
   { href: "/gastos", label: "Gastos", icon: Wallet },
+  { href: "/deudores", label: "Deudores", icon: HandCoins },
   { href: "/reportes", label: "Reportes", icon: BarChart3 },
 ];
 

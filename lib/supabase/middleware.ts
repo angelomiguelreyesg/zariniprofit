@@ -7,6 +7,7 @@ const PROTECTED_PATHS = [
   "/ventas",
   "/gastos",
   "/reportes",
+  "/deudores",
   "/ajustes",
 ];
 const AUTH_PATHS = ["/login", "/registro", "/recuperar"];

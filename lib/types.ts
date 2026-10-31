@@ -41,6 +41,21 @@ export type Gasto = {
   fecha: string;
 };
 
+export type Deudor = {
+  id: string;
+  user_id: string;
+  nombre: string;
+  telefono: string | null;
+  producto_id: string | null;
+  descripcion: string | null;
+  cantidad: number;
+  total: number;
+  estado: string;
+  fecha: string;
+  fecha_pago: string | null;
+  created_at: string;
+};
+
 export const METODOS_PAGO = [
   "Efectivo",
   "Tarjeta",
