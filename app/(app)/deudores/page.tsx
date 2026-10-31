@@ -104,6 +104,25 @@ export default function DeudoresPage() {
       return;
     }
 
+    const qtyByProduct = new Map<string, number>();
+    for (const item of items) {
+      if (item.productoId) {
+        qtyByProduct.set(
+          item.productoId,
+          (qtyByProduct.get(item.productoId) || 0) + item.cantidad,
+        );
+      }
+    }
+    for (const [pid, qty] of qtyByProduct) {
+      const p = productos.find((x) => x.id === pid);
+      if (p && qty > Number(p.stock)) {
+        setError(
+          `Stock insuficiente de "${p.nombre}": disponible ${p.stock}, pides ${qty}.`,
+        );
+        return;
+      }
+    }
+
     const total = cartTotal(items);
     const descripcion = items
       .map((i) => `${i.descripcion}${i.cantidad > 1 ? ` x${i.cantidad}` : ""}`)
@@ -132,12 +151,6 @@ export default function DeudoresPage() {
       return;
     }
 
-    const qtyByProduct = new Map<string, number>();
-    for (const item of items) {
-      if (item.productoId) {
-        qtyByProduct.set(item.productoId, (qtyByProduct.get(item.productoId) || 0) + item.cantidad);
-      }
-    }
     for (const [pid, qty] of qtyByProduct) {
       const p = productos.find((x) => x.id === pid);
       if (p) {

@@ -3,7 +3,7 @@ export function formatMoney(
   currency: string = "COP",
 ): string {
   const amount = Number.isFinite(value) ? value : 0;
-  const noDecimals = ["COP", "CLP", "MXN", "ARS"].includes(currency);
+  const noDecimals = ["COP", "CLP", "JPY", "KRW"].includes(currency);
   return new Intl.NumberFormat("es-CO", {
     style: "currency",
     currency,

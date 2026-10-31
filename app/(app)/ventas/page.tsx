@@ -128,6 +128,25 @@ export default function VentasPage() {
       return;
     }
 
+    const qtyByProduct = new Map<string, number>();
+    for (const item of items) {
+      if (item.productoId) {
+        qtyByProduct.set(
+          item.productoId,
+          (qtyByProduct.get(item.productoId) || 0) + item.cantidad,
+        );
+      }
+    }
+    for (const [pid, qty] of qtyByProduct) {
+      const p = productos.find((x) => x.id === pid);
+      if (p && qty > Number(p.stock)) {
+        setError(
+          `Stock insuficiente de "${p.nombre}": disponible ${p.stock}, pides ${qty}.`,
+        );
+        return;
+      }
+    }
+
     setSaving(true);
     const supabase = createClient();
     const ts = toTimestamp(fecha, hora);
@@ -146,15 +165,6 @@ export default function VentasPage() {
     const { error: insertError } = await supabase.from("ventas").insert(rows);
 
     if (!insertError) {
-      const qtyByProduct = new Map<string, number>();
-      for (const item of items) {
-        if (item.productoId) {
-          qtyByProduct.set(
-            item.productoId,
-            (qtyByProduct.get(item.productoId) || 0) + item.cantidad,
-          );
-        }
-      }
       for (const [pid, qty] of qtyByProduct) {
         const p = productos.find((x) => x.id === pid);
         if (p) {
@@ -179,6 +189,13 @@ export default function VentasPage() {
     if (!toDelete) return;
     setDeleting(true);
     const supabase = createClient();
+
+    if (toDelete.metodo_pago === "Crédito") {
+      await supabase
+        .from("deudores")
+        .update({ estado: "pendiente", fecha_pago: null, venta_id: null })
+        .eq("venta_id", toDelete.id);
+    }
 
     if (toDelete.producto_id) {
       const { data: prod } = await supabase

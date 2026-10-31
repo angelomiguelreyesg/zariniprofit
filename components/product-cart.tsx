@@ -86,7 +86,7 @@ export default function ProductCart({
             <option value="">Selecciona un producto…</option>
             {productos.map((p) => (
               <option key={p.id} value={p.id}>
-                {p.nombre} · {formatMoney(p.precio_venta, moneda)}
+                {p.nombre} · {formatMoney(p.precio_venta, moneda)} ({p.stock} disp.)
               </option>
             ))}
           </select>

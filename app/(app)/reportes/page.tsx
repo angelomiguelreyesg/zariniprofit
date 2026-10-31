@@ -23,7 +23,7 @@ import { useTheme } from "@/components/theme-provider";
 import { Card, Spinner } from "@/components/ui";
 import {
   formatMoney,
-  toISODate,
+  toLocalDateStr,
   endOfDay,
   downloadCSV,
 } from "@/lib/utils";
@@ -49,8 +49,8 @@ export default function ReportesPage() {
 
   const today = new Date();
   const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-  const [desde, setDesde] = useState(toISODate(firstOfMonth).slice(0, 10));
-  const [hasta, setHasta] = useState(toISODate(today).slice(0, 10));
+  const [desde, setDesde] = useState(toLocalDateStr(firstOfMonth));
+  const [hasta, setHasta] = useState(toLocalDateStr(today));
 
   const moneda = profile?.moneda || "COP";
 
