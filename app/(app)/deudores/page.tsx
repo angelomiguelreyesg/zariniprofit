@@ -131,24 +131,6 @@ export default function DeudoresPage() {
       return;
     }
 
-    const rows = items.map((item) => ({
-      user_id: user.id,
-      producto_id: item.productoId || null,
-      descripcion: item.descripcion,
-      cantidad: item.cantidad,
-      precio_unitario: item.precio,
-      total: item.cantidad * item.precio,
-      metodo_pago: "Crédito",
-      fecha: ts,
-    }));
-    const { error: ventaError } = await supabase.from("ventas").insert(rows);
-
-    if (ventaError) {
-      setSaving(false);
-      setError(ventaError.message);
-      return;
-    }
-
     const qtyByProduct = new Map<string, number>();
     for (const item of items) {
       if (item.productoId) {
@@ -174,13 +156,47 @@ export default function DeudoresPage() {
     if (!user) return;
     const supabase = createClient();
     const pagado = d.estado === "pagado";
-    await supabase
-      .from("deudores")
-      .update({
-        estado: pagado ? "pendiente" : "pagado",
-        fecha_pago: pagado ? null : new Date().toISOString(),
-      })
-      .eq("id", d.id);
+
+    if (pagado) {
+      if (d.venta_id) {
+        await supabase.from("ventas").delete().eq("id", d.venta_id);
+      }
+      await supabase
+        .from("deudores")
+        .update({ estado: "pendiente", fecha_pago: null, venta_id: null })
+        .eq("id", d.id);
+    } else {
+      const cantidad = Number(d.cantidad) || 1;
+      const total = Number(d.total) || 0;
+      const descripcion = `${d.nombre}${d.descripcion ? ` · ${d.descripcion}` : ""}`;
+
+      const { data: ventaData, error: ventaError } = await supabase
+        .from("ventas")
+        .insert({
+          user_id: user.id,
+          producto_id: null,
+          descripcion,
+          cantidad,
+          precio_unitario: total / cantidad,
+          total,
+          metodo_pago: "Crédito",
+          fecha: new Date().toISOString(),
+        })
+        .select("id")
+        .single();
+
+      if (ventaError || !ventaData) return;
+
+      await supabase
+        .from("deudores")
+        .update({
+          estado: "pagado",
+          fecha_pago: new Date().toISOString(),
+          venta_id: ventaData.id,
+        })
+        .eq("id", d.id);
+    }
+
     await load();
   }
 

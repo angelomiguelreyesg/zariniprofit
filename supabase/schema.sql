@@ -62,6 +62,7 @@ create table if not exists public.deudores (
   estado text not null default 'pendiente',
   fecha timestamptz not null default now(),
   fecha_pago timestamptz,
+  venta_id uuid references public.ventas (id) on delete set null,
   created_at timestamptz not null default now()
 );
 
