@@ -179,6 +179,21 @@ export default function VentasPage() {
     if (!toDelete) return;
     setDeleting(true);
     const supabase = createClient();
+
+    if (toDelete.producto_id) {
+      const { data: prod } = await supabase
+        .from("productos")
+        .select("stock")
+        .eq("id", toDelete.producto_id)
+        .single();
+      if (prod) {
+        await supabase
+          .from("productos")
+          .update({ stock: Number(prod.stock) + Number(toDelete.cantidad || 1) })
+          .eq("id", toDelete.producto_id);
+      }
+    }
+
     await supabase.from("ventas").delete().eq("id", toDelete.id);
     setDeleting(false);
     setToDelete(null);

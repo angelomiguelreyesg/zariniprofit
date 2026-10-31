@@ -57,6 +57,7 @@ create table if not exists public.deudores (
   telefono text,
   producto_id uuid references public.productos (id) on delete set null,
   descripcion text,
+  items jsonb,
   cantidad numeric(14,2) not null default 1,
   total numeric(14,2) not null default 0,
   estado text not null default 'pendiente',

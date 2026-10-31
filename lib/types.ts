@@ -54,6 +54,7 @@ export type Deudor = {
   fecha: string;
   fecha_pago: string | null;
   venta_id: string | null;
+  items: { producto_id: string | null; cantidad: number }[] | null;
   created_at: string;
 };
 

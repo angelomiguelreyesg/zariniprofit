@@ -119,6 +119,7 @@ export default function DeudoresPage() {
       telefono: telefono.trim() || null,
       producto_id: null,
       descripcion,
+      items: items.map((i) => ({ producto_id: i.productoId, cantidad: i.cantidad })),
       cantidad: cartTotalUnits(items),
       total,
       estado: "pendiente",
@@ -204,6 +205,26 @@ export default function DeudoresPage() {
     if (!toDelete) return;
     setDeleting(true);
     const supabase = createClient();
+
+    const itemsData = (toDelete.items || []).filter((i) => i.producto_id);
+    for (const it of itemsData) {
+      const { data: prod } = await supabase
+        .from("productos")
+        .select("stock")
+        .eq("id", it.producto_id)
+        .single();
+      if (prod) {
+        await supabase
+          .from("productos")
+          .update({ stock: Number(prod.stock) + Number(it.cantidad) })
+          .eq("id", it.producto_id);
+      }
+    }
+
+    if (toDelete.venta_id) {
+      await supabase.from("ventas").delete().eq("id", toDelete.venta_id);
+    }
+
     await supabase.from("deudores").delete().eq("id", toDelete.id);
     setDeleting(false);
     setToDelete(null);
