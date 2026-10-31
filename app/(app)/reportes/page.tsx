@@ -24,8 +24,10 @@ import { Card, Spinner } from "@/components/ui";
 import {
   formatMoney,
   toLocalDateStr,
+  toTimePart,
   endOfDay,
   downloadCSV,
+  csvNumber,
 } from "@/lib/utils";
 import type { Venta, Gasto } from "@/lib/types";
 
@@ -58,7 +60,7 @@ export default function ReportesPage() {
     if (!user) return;
     const supabase = createClient();
     const [v, g] = await Promise.all([
-      supabase.from("ventas").select("id, total, metodo_pago, fecha, descripcion").order("fecha", { ascending: false }).limit(1000),
+      supabase.from("ventas").select("*, producto:productos(nombre)").order("fecha", { ascending: false }).limit(1000),
       supabase.from("gastos").select("id, monto, categoria, descripcion, fecha").order("fecha", { ascending: false }).limit(1000),
     ]);
     setVentas((v.data as Venta[]) ?? []);
@@ -117,26 +119,37 @@ export default function ReportesPage() {
   }, [filtered.gastos]);
 
   function exportVentas() {
+    const datos = [...filtered.ventas].sort(
+      (a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime(),
+    );
     const rows: string[][] = [
-      ["Fecha", "Descripción", "Método de pago", "Total"],
-      ...filtered.ventas.map((v) => [
-        new Date(v.fecha).toLocaleString("es-CO"),
+      ["Fecha", "Hora", "Producto", "Descripción", "Cantidad", "Precio unitario", "Método de pago", "Total"],
+      ...datos.map((v) => [
+        toLocalDateStr(new Date(v.fecha)),
+        toTimePart(v.fecha),
+        v.producto?.nombre || "Venta libre",
         v.descripcion || "Venta",
+        csvNumber(v.cantidad),
+        csvNumber(v.precio_unitario),
         v.metodo_pago,
-        String(v.total),
+        csvNumber(v.total),
       ]),
     ];
     downloadCSV(`zariniprofit-ventas-${desde}-a-${hasta}.csv`, rows);
   }
 
   function exportGastos() {
+    const datos = [...filtered.gastos].sort(
+      (a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime(),
+    );
     const rows: string[][] = [
-      ["Fecha", "Descripción", "Categoría", "Monto"],
-      ...filtered.gastos.map((g) => [
-        new Date(g.fecha).toLocaleString("es-CO"),
+      ["Fecha", "Hora", "Descripción", "Categoría", "Monto"],
+      ...datos.map((g) => [
+        toLocalDateStr(new Date(g.fecha)),
+        toTimePart(g.fecha),
         g.descripcion,
-        g.categoria || "",
-        String(g.monto),
+        g.categoria || "Sin categoría",
+        csvNumber(g.monto),
       ]),
     ];
     downloadCSV(`zariniprofit-gastos-${desde}-a-${hasta}.csv`, rows);

@@ -76,15 +76,33 @@ export function toTimestamp(dateStr: string, timeStr: string): string {
   return d.toISOString();
 }
 
+export function toTimePart(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+}
+
+export function csvSeparator(): string {
+  return (1.1).toLocaleString().includes(",") ? ";" : ",";
+}
+
+export function csvNumber(value: number): string {
+  const s = String(Number(value) || 0);
+  return csvSeparator() === ";" ? s.replace(".", ",") : s;
+}
+
 export function downloadCSV(filename: string, rows: string[][]) {
+  const sep = csvSeparator();
   const csv = rows
     .map((row) =>
       row
         .map((cell) => {
           const s = String(cell ?? "");
-          return /[",\n;]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+          return s.includes('"') || s.includes(sep) || s.includes("\n")
+            ? `"${s.replace(/"/g, '""')}"`
+            : s;
         })
-        .join(","),
+        .join(sep),
     )
     .join("\n");
 
