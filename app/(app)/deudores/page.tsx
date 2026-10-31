@@ -14,12 +14,12 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { useApp } from "@/components/app-context";
 import { Card, Modal, EmptyState, Spinner, Badge } from "@/components/ui";
-import {
-  formatMoney,
-  formatDate,
-  toLocalDateStr,
-  toTimestamp,
-} from "@/lib/utils";
+import ProductCart, {
+  type CartItem,
+  cartTotal,
+  cartTotalUnits,
+} from "@/components/product-cart";
+import { formatMoney, formatDate, toLocalDateStr, toTimestamp } from "@/lib/utils";
 import type { Deudor, Producto } from "@/lib/types";
 
 type Filtro = "todos" | "pendiente" | "pagado";
@@ -39,11 +39,8 @@ export default function DeudoresPage() {
 
   const [nombre, setNombre] = useState("");
   const [telefono, setTelefono] = useState("");
-  const [productoId, setProductoId] = useState("");
-  const [descripcion, setDescripcion] = useState("");
-  const [cantidad, setCantidad] = useState("1");
-  const [precio, setPrecio] = useState("");
   const [fecha, setFecha] = useState(toLocalDateStr(new Date()));
+  const [items, setItems] = useState<CartItem[]>([]);
 
   const moneda = profile?.moneda || "COP";
 
@@ -85,30 +82,11 @@ export default function DeudoresPage() {
     return deudores.filter((d) => d.estado === filtro);
   }, [deudores, filtro]);
 
-  const total = (Number(cantidad) || 0) * (Number(precio) || 0);
-
-  function handleSelectProducto(id: string) {
-    setProductoId(id);
-    if (!id) {
-      setPrecio("");
-      setDescripcion("");
-      return;
-    }
-    const p = productos.find((x) => x.id === id);
-    if (p) {
-      setPrecio(String(p.precio_venta));
-      setDescripcion(p.nombre);
-    }
-  }
-
   function openForm() {
     setNombre("");
     setTelefono("");
-    setProductoId("");
-    setDescripcion("");
-    setCantidad("1");
-    setPrecio("");
     setFecha(toLocalDateStr(new Date()));
+    setItems([]);
     setError(null);
     setModalOpen(true);
   }
@@ -117,32 +95,34 @@ export default function DeudoresPage() {
     e.preventDefault();
     if (!user) return;
     setError(null);
-    const cantidadNum = Number(cantidad);
-    const precioNum = Number(precio);
     if (!nombre.trim()) {
       setError("El nombre del deudor es obligatorio.");
       return;
     }
-    if (precioNum <= 0) {
-      setError("Ingresa un monto válido.");
+    if (items.length === 0) {
+      setError("Agrega al menos un producto o concepto.");
       return;
     }
-    const producto = productoId ? productos.find((p) => p.id === productoId) : null;
-    const totalNum = cantidadNum * precioNum;
+
+    const total = cartTotal(items);
+    const descripcion = items
+      .map((i) => `${i.descripcion}${i.cantidad > 1 ? ` x${i.cantidad}` : ""}`)
+      .join(", ");
 
     setSaving(true);
     const supabase = createClient();
+    const ts = toTimestamp(fecha, "12:00");
 
     const { error: deudorError } = await supabase.from("deudores").insert({
       user_id: user.id,
       nombre: nombre.trim(),
       telefono: telefono.trim() || null,
-      producto_id: productoId || null,
-      descripcion: producto ? producto.nombre : descripcion.trim() || null,
-      cantidad: cantidadNum,
-      total: totalNum,
+      producto_id: null,
+      descripcion,
+      cantidad: cartTotalUnits(items),
+      total,
       estado: "pendiente",
-      fecha: toTimestamp(fecha, "12:00"),
+      fecha: ts,
     });
 
     if (deudorError) {
@@ -151,16 +131,17 @@ export default function DeudoresPage() {
       return;
     }
 
-    const { error: ventaError } = await supabase.from("ventas").insert({
+    const rows = items.map((item) => ({
       user_id: user.id,
-      producto_id: productoId || null,
-      descripcion: producto ? producto.nombre : descripcion.trim() || `Crédito ${nombre.trim()}`,
-      cantidad: cantidadNum,
-      precio_unitario: precioNum,
-      total: totalNum,
+      producto_id: item.productoId || null,
+      descripcion: item.descripcion,
+      cantidad: item.cantidad,
+      precio_unitario: item.precio,
+      total: item.cantidad * item.precio,
       metodo_pago: "Crédito",
-      fecha: toTimestamp(fecha, "12:00"),
-    });
+      fecha: ts,
+    }));
+    const { error: ventaError } = await supabase.from("ventas").insert(rows);
 
     if (ventaError) {
       setSaving(false);
@@ -168,11 +149,20 @@ export default function DeudoresPage() {
       return;
     }
 
-    if (producto) {
-      await supabase
-        .from("productos")
-        .update({ stock: Math.max(0, Number(producto.stock) - cantidadNum) })
-        .eq("id", producto.id);
+    const qtyByProduct = new Map<string, number>();
+    for (const item of items) {
+      if (item.productoId) {
+        qtyByProduct.set(item.productoId, (qtyByProduct.get(item.productoId) || 0) + item.cantidad);
+      }
+    }
+    for (const [pid, qty] of qtyByProduct) {
+      const p = productos.find((x) => x.id === pid);
+      if (p) {
+        await supabase
+          .from("productos")
+          .update({ stock: Math.max(0, Number(p.stock) - qty) })
+          .eq("id", pid);
+      }
     }
 
     setSaving(false);
@@ -335,59 +325,12 @@ export default function DeudoresPage() {
             </div>
           </div>
 
-          <div>
-            <label className="label">Producto</label>
-            <select
-              className="input"
-              value={productoId}
-              onChange={(e) => handleSelectProducto(e.target.value)}
-            >
-              <option value="">— Deuda sin producto específico —</option>
-              {productos.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.nombre} · {formatMoney(p.precio_venta, moneda)}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {!productoId && (
-            <div>
-              <label className="label">Descripción</label>
-              <input
-                className="input"
-                value={descripcion}
-                onChange={(e) => setDescripcion(e.target.value)}
-                placeholder="Ej. Fiado de la semana"
-              />
-            </div>
-          )}
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="label">Cantidad</label>
-              <input
-                className="input"
-                type="number"
-                step="0.01"
-                min="0"
-                value={cantidad}
-                onChange={(e) => setCantidad(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="label">Precio unitario</label>
-              <input
-                className="input"
-                type="number"
-                step="0.01"
-                min="0"
-                value={precio}
-                onChange={(e) => setPrecio(e.target.value)}
-                placeholder="0"
-              />
-            </div>
-          </div>
+          <ProductCart
+            productos={productos}
+            moneda={moneda}
+            items={items}
+            onChange={setItems}
+          />
 
           <div>
             <label className="label">Fecha</label>
@@ -400,15 +343,6 @@ export default function DeudoresPage() {
                 onChange={(e) => setFecha(e.target.value)}
               />
             </div>
-          </div>
-
-          <div className="flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3 dark:bg-slate-800">
-            <span className="text-sm font-medium text-slate-600 dark:text-slate-300">
-              Total deuda
-            </span>
-            <span className="text-lg font-bold text-brand-600 dark:text-brand-400">
-              {formatMoney(total, moneda)}
-            </span>
           </div>
 
           {error && (

@@ -13,6 +13,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useApp } from "@/components/app-context";
 import { Card, Modal, EmptyState, Spinner } from "@/components/ui";
 import Calendar from "@/components/calendar";
+import ProductCart, { type CartItem } from "@/components/product-cart";
 import {
   formatMoney,
   formatDateTime,
@@ -49,10 +50,7 @@ export default function VentasPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [productoId, setProductoId] = useState("");
-  const [descripcion, setDescripcion] = useState("");
-  const [cantidad, setCantidad] = useState("1");
-  const [precio, setPrecio] = useState("");
+  const [items, setItems] = useState<CartItem[]>([]);
   const [metodoPago, setMetodoPago] = useState("Efectivo");
   const [fecha, setFecha] = useState(toLocalDateStr(new Date()));
   const [hora, setHora] = useState("");
@@ -84,8 +82,6 @@ export default function VentasPage() {
     load();
   }, [load]);
 
-  const total = (Number(cantidad) || 0) * (Number(precio) || 0);
-
   const stats = useMemo(() => {
     const hoy = startOfDay(new Date()).getTime();
     let totalGeneral = 0;
@@ -107,22 +103,9 @@ export default function VentasPage() {
     [ventasFiltradas],
   );
 
-  function handleSelectProducto(id: string) {
-    setProductoId(id);
-    if (!id) {
-      setPrecio("");
-      return;
-    }
-    const p = productos.find((x) => x.id === id);
-    if (p) setPrecio(String(p.precio_venta));
-  }
-
   function openForm(date?: string) {
     const d = date || selectedDate;
-    setProductoId("");
-    setDescripcion("");
-    setCantidad("1");
-    setPrecio("");
+    setItems([]);
     setMetodoPago("Efectivo");
     setFecha(d);
     setHora(nowTimeStr());
@@ -140,40 +123,47 @@ export default function VentasPage() {
     e.preventDefault();
     if (!user) return;
     setError(null);
-    const cantidadNum = Number(cantidad);
-    const precioNum = Number(precio);
-    if (cantidadNum <= 0) {
-      setError("La cantidad debe ser mayor a 0.");
-      return;
-    }
-    if (precioNum < 0) {
-      setError("El precio no puede ser negativo.");
-      return;
-    }
-    const producto = productoId ? productos.find((p) => p.id === productoId) : null;
-    if (!producto && !descripcion.trim()) {
-      setError("Selecciona un producto o escribe una descripción.");
+    if (items.length === 0) {
+      setError("Agrega al menos un producto o concepto.");
       return;
     }
 
     setSaving(true);
     const supabase = createClient();
-    const { error: insertError } = await supabase.from("ventas").insert({
-      user_id: user.id,
-      producto_id: productoId || null,
-      descripcion: producto ? producto.nombre : descripcion.trim(),
-      cantidad: cantidadNum,
-      precio_unitario: precioNum,
-      total: cantidadNum * precioNum,
-      metodo_pago: metodoPago,
-      fecha: toTimestamp(fecha, hora),
-    });
+    const ts = toTimestamp(fecha, hora);
 
-    if (!insertError && producto) {
-      await supabase
-        .from("productos")
-        .update({ stock: Math.max(0, Number(producto.stock) - cantidadNum) })
-        .eq("id", producto.id);
+    const rows = items.map((item) => ({
+      user_id: user.id,
+      producto_id: item.productoId || null,
+      descripcion: item.descripcion,
+      cantidad: item.cantidad,
+      precio_unitario: item.precio,
+      total: item.cantidad * item.precio,
+      metodo_pago: metodoPago,
+      fecha: ts,
+    }));
+
+    const { error: insertError } = await supabase.from("ventas").insert(rows);
+
+    if (!insertError) {
+      const qtyByProduct = new Map<string, number>();
+      for (const item of items) {
+        if (item.productoId) {
+          qtyByProduct.set(
+            item.productoId,
+            (qtyByProduct.get(item.productoId) || 0) + item.cantidad,
+          );
+        }
+      }
+      for (const [pid, qty] of qtyByProduct) {
+        const p = productos.find((x) => x.id === pid);
+        if (p) {
+          await supabase
+            .from("productos")
+            .update({ stock: Math.max(0, Number(p.stock) - qty) })
+            .eq("id", pid);
+        }
+      }
     }
 
     setSaving(false);
@@ -243,10 +233,7 @@ export default function VentasPage() {
           {showAll ? "Todas las ventas" : `Ventas del ${fmtDay(selectedDate)}`}
         </h2>
         <div className="flex gap-2">
-          <button
-            onClick={() => setShowAll((s) => !s)}
-            className="btn-secondary"
-          >
+          <button onClick={() => setShowAll((s) => !s)} className="btn-secondary">
             <ListFilter className="h-4 w-4" />
             {showAll ? "Ver por día" : "Ver todas"}
           </button>
@@ -312,59 +299,12 @@ export default function VentasPage() {
         title="Nueva venta"
       >
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="label">Producto</label>
-            <select
-              className="input"
-              value={productoId}
-              onChange={(e) => handleSelectProducto(e.target.value)}
-            >
-              <option value="">— Venta libre (sin producto) —</option>
-              {productos.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.nombre} · {formatMoney(p.precio_venta, moneda)}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {!productoId && (
-            <div>
-              <label className="label">Descripción</label>
-              <input
-                className="input"
-                value={descripcion}
-                onChange={(e) => setDescripcion(e.target.value)}
-                placeholder="Ej. Venta de mostrador"
-              />
-            </div>
-          )}
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="label">Cantidad</label>
-              <input
-                className="input"
-                type="number"
-                step="0.01"
-                min="0"
-                value={cantidad}
-                onChange={(e) => setCantidad(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="label">Precio unitario</label>
-              <input
-                className="input"
-                type="number"
-                step="0.01"
-                min="0"
-                value={precio}
-                onChange={(e) => setPrecio(e.target.value)}
-                placeholder="0"
-              />
-            </div>
-          </div>
+          <ProductCart
+            productos={productos}
+            moneda={moneda}
+            items={items}
+            onChange={setItems}
+          />
 
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -400,15 +340,6 @@ export default function VentasPage() {
                 </option>
               ))}
             </select>
-          </div>
-
-          <div className="flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3 dark:bg-slate-800">
-            <span className="text-sm font-medium text-slate-600 dark:text-slate-300">
-              Total
-            </span>
-            <span className="text-lg font-bold text-brand-600 dark:text-brand-400">
-              {formatMoney(total, moneda)}
-            </span>
           </div>
 
           {error && (
