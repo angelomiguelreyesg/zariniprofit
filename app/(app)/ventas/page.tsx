@@ -1,13 +1,42 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Plus, ShoppingCart, Trash2, Receipt } from "lucide-react";
+import {
+  Plus,
+  ShoppingCart,
+  Trash2,
+  Receipt,
+  CalendarDays,
+  ListFilter,
+} from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useApp } from "@/components/app-context";
-import { Card, Modal, EmptyState, Spinner, Badge } from "@/components/ui";
-import { formatMoney, formatDateTime, startOfDay } from "@/lib/utils";
+import { Card, Modal, EmptyState, Spinner } from "@/components/ui";
+import Calendar from "@/components/calendar";
+import {
+  formatMoney,
+  formatDateTime,
+  startOfDay,
+  toLocalDateStr,
+  toTimestamp,
+  isoToDateKey,
+} from "@/lib/utils";
 import { METODOS_PAGO } from "@/lib/types";
 import type { Venta, Producto } from "@/lib/types";
+
+function nowTimeStr(): string {
+  const d = new Date();
+  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+}
+
+function fmtDay(dateStr: string): string {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString("es-CO", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+  });
+}
 
 export default function VentasPage() {
   const { user, profile } = useApp();
@@ -25,6 +54,13 @@ export default function VentasPage() {
   const [cantidad, setCantidad] = useState("1");
   const [precio, setPrecio] = useState("");
   const [metodoPago, setMetodoPago] = useState("Efectivo");
+  const [fecha, setFecha] = useState(toLocalDateStr(new Date()));
+  const [hora, setHora] = useState("");
+
+  const todayStr = toLocalDateStr(new Date());
+  const [selectedDate, setSelectedDate] = useState(todayStr);
+  const [monthView, setMonthView] = useState(new Date());
+  const [showAll, setShowAll] = useState(false);
 
   const moneda = profile?.moneda || "COP";
 
@@ -36,7 +72,7 @@ export default function VentasPage() {
         .from("ventas")
         .select("*, producto:productos(nombre)")
         .order("fecha", { ascending: false })
-        .limit(300),
+        .limit(500),
       supabase.from("productos").select("*").order("nombre"),
     ]);
     setVentas((v.data as Venta[]) ?? []);
@@ -61,6 +97,16 @@ export default function VentasPage() {
     return { totalGeneral, totalHoy };
   }, [ventas]);
 
+  const ventasFiltradas = useMemo(() => {
+    if (showAll) return ventas;
+    return ventas.filter((v) => isoToDateKey(v.fecha) === selectedDate);
+  }, [ventas, selectedDate, showAll]);
+
+  const totalSelected = useMemo(
+    () => ventasFiltradas.reduce((a, v) => a + v.total, 0),
+    [ventasFiltradas],
+  );
+
   function handleSelectProducto(id: string) {
     setProductoId(id);
     if (!id) {
@@ -71,13 +117,23 @@ export default function VentasPage() {
     if (p) setPrecio(String(p.precio_venta));
   }
 
-  function resetForm() {
+  function openForm(date?: string) {
+    const d = date || selectedDate;
     setProductoId("");
     setDescripcion("");
     setCantidad("1");
     setPrecio("");
     setMetodoPago("Efectivo");
+    setFecha(d);
+    setHora(nowTimeStr());
     setError(null);
+    setFormOpen(true);
+  }
+
+  function handleSelectDate(date: string) {
+    setSelectedDate(date);
+    setFecha(date);
+    setShowAll(false);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -110,6 +166,7 @@ export default function VentasPage() {
       precio_unitario: precioNum,
       total: cantidadNum * precioNum,
       metodo_pago: metodoPago,
+      fecha: toTimestamp(fecha, hora),
     });
 
     if (!insertError && producto) {
@@ -125,7 +182,6 @@ export default function VentasPage() {
       return;
     }
     setFormOpen(false);
-    resetForm();
     await load();
   }
 
@@ -146,9 +202,11 @@ export default function VentasPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Ventas</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">Registra y revisa tus ventas</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            Registra y revisa tus ventas por fecha
+          </p>
         </div>
-        <button onClick={() => { resetForm(); setFormOpen(true); }} className="btn-primary">
+        <button onClick={() => openForm()} className="btn-primary">
           <Plus className="h-4 w-4" /> Nueva venta
         </button>
       </div>
@@ -156,23 +214,66 @@ export default function VentasPage() {
       <div className="grid grid-cols-3 gap-4">
         <MiniStat label="Ventas de hoy" value={formatMoney(stats.totalHoy, moneda)} tone="green" />
         <MiniStat label="Ventas totales" value={formatMoney(stats.totalGeneral, moneda)} />
-        <MiniStat label="Registros" value={String(ventas.length)} />
+        <MiniStat
+          label={`Día (${fmtDay(selectedDate)})`}
+          value={formatMoney(totalSelected, moneda)}
+        />
       </div>
 
-      {ventas.length === 0 ? (
+      <Card>
+        <div className="mb-3 flex items-center gap-2 text-slate-400 dark:text-slate-500">
+          <CalendarDays className="h-5 w-5" />
+          <h2 className="font-semibold text-slate-900 dark:text-white">Calendario</h2>
+        </div>
+        <p className="mb-4 text-xs text-slate-400 dark:text-slate-500">
+          Toca un día para ver o registrar ventas en esa fecha.
+        </p>
+        <Calendar
+          ventas={ventas}
+          selectedDate={selectedDate}
+          onSelectDate={handleSelectDate}
+          month={monthView}
+          onMonthChange={setMonthView}
+          moneda={moneda}
+        />
+      </Card>
+
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="font-semibold text-slate-900 dark:text-white">
+          {showAll ? "Todas las ventas" : `Ventas del ${fmtDay(selectedDate)}`}
+        </h2>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowAll((s) => !s)}
+            className="btn-secondary"
+          >
+            <ListFilter className="h-4 w-4" />
+            {showAll ? "Ver por día" : "Ver todas"}
+          </button>
+          <button onClick={() => openForm()} className="btn-secondary">
+            <Plus className="h-4 w-4" /> Agregar
+          </button>
+        </div>
+      </div>
+
+      {ventasFiltradas.length === 0 ? (
         <EmptyState
           icon={<ShoppingCart className="h-6 w-6" />}
-          title="Aún no hay ventas"
-          description="Registra tu primera venta para llevar el control de tu negocio."
+          title={showAll ? "Aún no hay ventas" : "Sin ventas en esta fecha"}
+          description={
+            showAll
+              ? "Registra tu primera venta para llevar el control de tu negocio."
+              : "No hay ventas registradas el día seleccionado."
+          }
           action={
-            <button onClick={() => { resetForm(); setFormOpen(true); }} className="btn-primary">
+            <button onClick={() => openForm()} className="btn-primary">
               <Plus className="h-4 w-4" /> Registrar venta
             </button>
           }
         />
       ) : (
         <Card className="divide-y divide-slate-100 p-0 dark:divide-slate-800">
-          {ventas.map((v) => (
+          {ventasFiltradas.map((v) => (
             <div key={v.id} className="flex items-center gap-3 px-5 py-3.5">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400">
                 <Receipt className="h-5 w-5" />
@@ -265,6 +366,27 @@ export default function VentasPage() {
             </div>
           </div>
 
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="label">Fecha</label>
+              <input
+                className="input"
+                type="date"
+                value={fecha}
+                onChange={(e) => setFecha(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="label">Hora</label>
+              <input
+                className="input"
+                type="time"
+                value={hora}
+                onChange={(e) => setHora(e.target.value)}
+              />
+            </div>
+          </div>
+
           <div>
             <label className="label">Método de pago</label>
             <select
@@ -346,7 +468,7 @@ function MiniStat({
 }) {
   return (
     <Card className="p-4">
-      <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{label}</p>
+      <p className="truncate text-xs font-medium text-slate-500 dark:text-slate-400">{label}</p>
       <p className={`mt-1 truncate text-base font-bold sm:text-lg ${tone === "green" ? "text-brand-600 dark:text-brand-400" : "text-slate-900 dark:text-white"}`}>
         {value}
       </p>

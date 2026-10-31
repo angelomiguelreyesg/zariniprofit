@@ -58,6 +58,24 @@ export function toISODate(date: Date): string {
   return d.toISOString();
 }
 
+export function toLocalDateStr(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+export function isoToDateKey(iso: string): string {
+  return toLocalDateStr(new Date(iso));
+}
+
+export function toTimestamp(dateStr: string, timeStr: string): string {
+  const [h, m] = (timeStr || "12:00").split(":").map((x) => Number(x) || 0);
+  const d = new Date(`${dateStr}T00:00:00`);
+  d.setHours(h, m, 0, 0);
+  return d.toISOString();
+}
+
 export function downloadCSV(filename: string, rows: string[][]) {
   const csv = rows
     .map((row) =>
