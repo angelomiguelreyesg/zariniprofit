@@ -14,6 +14,8 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { useApp } from "@/components/app-context";
 import { Card, Modal, EmptyState, Spinner, Badge } from "@/components/ui";
+import BulkBar from "@/components/bulk-bar";
+import { useBulkSelect } from "@/hooks/use-bulk-select";
 import ProductCart, {
   type CartItem,
   cartTotal,
@@ -37,6 +39,8 @@ export default function DeudoresPage() {
   const [toDelete, setToDelete] = useState<Deudor | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [restaurarStock, setRestaurarStock] = useState(true);
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   const [nombre, setNombre] = useState("");
   const [telefono, setTelefono] = useState("");
@@ -82,6 +86,60 @@ export default function DeudoresPage() {
     if (filtro === "todos") return deudores;
     return deudores.filter((d) => d.estado === filtro);
   }, [deudores, filtro]);
+
+  const { selected, toggle, selectAll, clear, allSelected } = useBulkSelect(filtrados);
+
+  async function handleBulkDelete() {
+    const ids = [...selected];
+    if (ids.length === 0) return;
+    setBulkDeleting(true);
+    const supabase = createClient();
+
+    const { data: deudoresSel } = await supabase
+      .from("deudores")
+      .select("id, items, venta_id")
+      .in("id", ids);
+
+    if (restaurarStock) {
+      const qtyByProduct = new Map<string, number>();
+      for (const d of deudoresSel || []) {
+        for (const it of d.items || []) {
+          if (it.producto_id) {
+            qtyByProduct.set(
+              it.producto_id,
+              (qtyByProduct.get(it.producto_id) || 0) + Number(it.cantidad),
+            );
+          }
+        }
+      }
+      for (const [pid, qty] of qtyByProduct) {
+        const { data: prod } = await supabase
+          .from("productos")
+          .select("stock")
+          .eq("id", pid)
+          .single();
+        if (prod) {
+          await supabase
+            .from("productos")
+            .update({ stock: Number(prod.stock) + qty })
+            .eq("id", pid);
+        }
+      }
+      const ventaIds = (deudoresSel || [])
+        .map((d) => d.venta_id)
+        .filter(Boolean) as string[];
+      if (ventaIds.length) {
+        await supabase.from("ventas").delete().in("id", ventaIds);
+      }
+    }
+
+    await supabase.from("deudores").delete().in("id", ids);
+
+    setBulkDeleting(false);
+    clear();
+    setBulkOpen(false);
+    await load();
+  }
 
   function openForm() {
     setNombre("");
@@ -302,8 +360,25 @@ export default function DeudoresPage() {
         />
       ) : (
         <Card className="divide-y divide-slate-100 p-0 dark:divide-slate-800">
+          <div className="flex items-center gap-3 px-5 py-2.5">
+            <input
+              type="checkbox"
+              checked={allSelected}
+              onChange={selectAll}
+              className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-800"
+            />
+            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+              Seleccionar todos
+            </span>
+          </div>
           {filtrados.map((d) => (
             <div key={d.id} className="flex items-center gap-3 px-5 py-3.5">
+              <input
+                type="checkbox"
+                checked={selected.has(d.id)}
+                onChange={() => toggle(d.id)}
+                className="h-4 w-4 shrink-0 rounded border-slate-300 text-brand-600 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-800"
+              />
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400">
                 <User className="h-5 w-5" />
               </div>
@@ -456,6 +531,50 @@ export default function DeudoresPage() {
           </button>
         </div>
       </Modal>
+
+      {/* Confirmar eliminación en lote */}
+      <Modal
+        open={bulkOpen}
+        onClose={() => setBulkOpen(false)}
+        title="Eliminar deudores"
+      >
+        <p className="text-sm text-slate-600 dark:text-slate-300">
+          ¿Eliminar {selected.size} deudor{selected.size !== 1 ? "es" : ""}?
+        </p>
+
+        <label className="mt-4 flex cursor-pointer items-center gap-2.5 rounded-xl border border-slate-200 p-3 transition hover:border-slate-300 dark:border-slate-700 dark:hover:border-slate-600">
+          <input
+            type="checkbox"
+            checked={restaurarStock}
+            onChange={(e) => setRestaurarStock(e.target.checked)}
+            className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-800"
+          />
+          <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
+            Devolver productos al inventario
+          </span>
+        </label>
+
+        <div className="mt-6 flex gap-3">
+          <button onClick={() => setBulkOpen(false)} className="btn-secondary flex-1">
+            Cancelar
+          </button>
+          <button onClick={handleBulkDelete} disabled={bulkDeleting} className="btn-danger flex-1">
+            {bulkDeleting ? "Eliminando…" : "Eliminar"}
+          </button>
+        </div>
+      </Modal>
+
+      {selected.size > 0 && (
+        <BulkBar
+          count={selected.size}
+          onClear={clear}
+          onDelete={() => {
+            setRestaurarStock(true);
+            setBulkOpen(true);
+          }}
+          deleting={bulkDeleting}
+        />
+      )}
     </div>
   );
 }

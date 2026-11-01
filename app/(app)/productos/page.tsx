@@ -12,6 +12,8 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { useApp } from "@/components/app-context";
 import { Card, Modal, EmptyState, Spinner, Badge } from "@/components/ui";
+import BulkBar from "@/components/bulk-bar";
+import { useBulkSelect } from "@/hooks/use-bulk-select";
 import { formatMoney } from "@/lib/utils";
 import type { Producto } from "@/lib/types";
 
@@ -57,6 +59,8 @@ export default function ProductosPage() {
   const [error, setError] = useState<string | null>(null);
   const [toDelete, setToDelete] = useState<Producto | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   const moneda = profile?.moneda || "COP";
 
@@ -97,6 +101,20 @@ export default function ProductosPage() {
     const bajo = productos.filter((p) => p.stock <= 5).length;
     return { valorInventario, unidades, bajo };
   }, [productos]);
+
+  const { selected, toggle, selectAll, clear, allSelected } = useBulkSelect(filtered);
+
+  async function handleBulkDelete() {
+    const ids = [...selected];
+    if (ids.length === 0) return;
+    setBulkDeleting(true);
+    const supabase = createClient();
+    await supabase.from("productos").delete().in("id", ids);
+    setBulkDeleting(false);
+    clear();
+    setBulkOpen(false);
+    await load();
+  }
 
   function openNew() {
     setEditing(null);
@@ -239,6 +257,14 @@ export default function ProductosPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-100 bg-slate-50/60 text-left text-xs uppercase tracking-wide text-slate-500 dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-400">
+                  <th className="w-10 px-4 py-3">
+                    <input
+                      type="checkbox"
+                      checked={allSelected}
+                      onChange={selectAll}
+                      className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-800"
+                    />
+                  </th>
                   <th className="px-5 py-3 font-medium">Producto</th>
                   <th className="px-5 py-3 font-medium">Categoría</th>
                   <th className="px-5 py-3 text-right font-medium">Precio</th>
@@ -250,6 +276,14 @@ export default function ProductosPage() {
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {filtered.map((p) => (
                   <tr key={p.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40">
+                    <td className="px-4 py-3">
+                      <input
+                        type="checkbox"
+                        checked={selected.has(p.id)}
+                        onChange={() => toggle(p.id)}
+                        className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-800"
+                      />
+                    </td>
                     <td className="px-5 py-3">
                       <div className="flex items-center gap-3">
                         <ProductThumb p={p} size="sm" />
@@ -300,6 +334,12 @@ export default function ProductosPage() {
               <Card key={p.id} className="p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      checked={selected.has(p.id)}
+                      onChange={() => toggle(p.id)}
+                      className="h-4 w-4 shrink-0 rounded border-slate-300 text-brand-600 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-800"
+                    />
                     <ProductThumb p={p} size="md" />
                     <div>
                       <p className="font-semibold text-slate-900 dark:text-white">{p.nombre}</p>
@@ -477,6 +517,35 @@ export default function ProductosPage() {
           </button>
         </div>
       </Modal>
+
+      {/* Confirmar eliminación en lote */}
+      <Modal
+        open={bulkOpen}
+        onClose={() => setBulkOpen(false)}
+        title="Eliminar productos"
+      >
+        <p className="text-sm text-slate-600 dark:text-slate-300">
+          ¿Eliminar {selected.size} producto{selected.size !== 1 ? "s" : ""}? Esta
+          acción no se puede deshacer.
+        </p>
+        <div className="mt-6 flex gap-3">
+          <button onClick={() => setBulkOpen(false)} className="btn-secondary flex-1">
+            Cancelar
+          </button>
+          <button onClick={handleBulkDelete} disabled={bulkDeleting} className="btn-danger flex-1">
+            {bulkDeleting ? "Eliminando…" : "Eliminar"}
+          </button>
+        </div>
+      </Modal>
+
+      {selected.size > 0 && (
+        <BulkBar
+          count={selected.size}
+          onClear={clear}
+          onDelete={() => setBulkOpen(true)}
+          deleting={bulkDeleting}
+        />
+      )}
     </div>
   );
 }

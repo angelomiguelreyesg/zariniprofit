@@ -12,6 +12,8 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { useApp } from "@/components/app-context";
 import { Card, Modal, EmptyState, Spinner } from "@/components/ui";
+import BulkBar from "@/components/bulk-bar";
+import { useBulkSelect } from "@/hooks/use-bulk-select";
 import Calendar from "@/components/calendar";
 import ProductCart, { type CartItem } from "@/components/product-cart";
 import {
@@ -49,6 +51,8 @@ export default function VentasPage() {
   const [deleting, setDeleting] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   const [items, setItems] = useState<CartItem[]>([]);
   const [metodoPago, setMetodoPago] = useState("Efectivo");
@@ -102,6 +106,52 @@ export default function VentasPage() {
     () => ventasFiltradas.reduce((a, v) => a + v.total, 0),
     [ventasFiltradas],
   );
+
+  const { selected, toggle, selectAll, clear, allSelected } = useBulkSelect(ventasFiltradas);
+
+  async function handleBulkDelete() {
+    const ids = [...selected];
+    if (ids.length === 0) return;
+    setBulkDeleting(true);
+    const supabase = createClient();
+
+    const { data: ventasSel } = await supabase
+      .from("ventas")
+      .select("id, producto_id, cantidad, metodo_pago")
+      .in("id", ids);
+
+    const qtyByProduct = new Map<string, number>();
+    for (const v of ventasSel || []) {
+      if (v.producto_id) {
+        qtyByProduct.set(v.producto_id, (qtyByProduct.get(v.producto_id) || 0) + Number(v.cantidad));
+      }
+    }
+    for (const [pid, qty] of qtyByProduct) {
+      const { data: prod } = await supabase
+        .from("productos")
+        .select("stock")
+        .eq("id", pid)
+        .single();
+      if (prod) {
+        await supabase
+          .from("productos")
+          .update({ stock: Number(prod.stock) + qty })
+          .eq("id", pid);
+      }
+    }
+
+    await supabase
+      .from("deudores")
+      .update({ estado: "pendiente", fecha_pago: null, venta_id: null })
+      .in("venta_id", ids);
+
+    await supabase.from("ventas").delete().in("id", ids);
+
+    setBulkDeleting(false);
+    clear();
+    setBulkOpen(false);
+    await load();
+  }
 
   function openForm(date?: string) {
     const d = date || selectedDate;
@@ -292,8 +342,25 @@ export default function VentasPage() {
         />
       ) : (
         <Card className="divide-y divide-slate-100 p-0 dark:divide-slate-800">
+          <div className="flex items-center gap-3 px-5 py-2.5">
+            <input
+              type="checkbox"
+              checked={allSelected}
+              onChange={selectAll}
+              className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-800"
+            />
+            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+              Seleccionar todos
+            </span>
+          </div>
           {ventasFiltradas.map((v) => (
             <div key={v.id} className="flex items-center gap-3 px-5 py-3.5">
+              <input
+                type="checkbox"
+                checked={selected.has(v.id)}
+                onChange={() => toggle(v.id)}
+                className="h-4 w-4 shrink-0 rounded border-slate-300 text-brand-600 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-800"
+              />
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400">
                 <Receipt className="h-5 w-5" />
               </div>
@@ -416,6 +483,35 @@ export default function VentasPage() {
           </button>
         </div>
       </Modal>
+
+      {/* Confirmar eliminación en lote */}
+      <Modal
+        open={bulkOpen}
+        onClose={() => setBulkOpen(false)}
+        title="Eliminar ventas"
+      >
+        <p className="text-sm text-slate-600 dark:text-slate-300">
+          ¿Eliminar {selected.size} venta{selected.size !== 1 ? "s" : ""}? El stock
+          de los productos se devolverá al inventario.
+        </p>
+        <div className="mt-6 flex gap-3">
+          <button onClick={() => setBulkOpen(false)} className="btn-secondary flex-1">
+            Cancelar
+          </button>
+          <button onClick={handleBulkDelete} disabled={bulkDeleting} className="btn-danger flex-1">
+            {bulkDeleting ? "Eliminando…" : "Eliminar"}
+          </button>
+        </div>
+      </Modal>
+
+      {selected.size > 0 && (
+        <BulkBar
+          count={selected.size}
+          onClear={clear}
+          onDelete={() => setBulkOpen(true)}
+          deleting={bulkDeleting}
+        />
+      )}
     </div>
   );
 }

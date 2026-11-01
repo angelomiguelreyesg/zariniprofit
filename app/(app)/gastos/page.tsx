@@ -5,6 +5,8 @@ import { Plus, Wallet, Trash2, Pencil, ReceiptText } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useApp } from "@/components/app-context";
 import { Card, Modal, EmptyState, Spinner, Badge } from "@/components/ui";
+import BulkBar from "@/components/bulk-bar";
+import { useBulkSelect } from "@/hooks/use-bulk-select";
 import { formatMoney, formatDateTime, startOfDay } from "@/lib/utils";
 import { CATEGORIAS_GASTO } from "@/lib/types";
 import type { Gasto } from "@/lib/types";
@@ -28,6 +30,8 @@ export default function GastosPage() {
   const [error, setError] = useState<string | null>(null);
   const [toDelete, setToDelete] = useState<Gasto | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   const moneda = profile?.moneda || "COP";
 
@@ -61,6 +65,20 @@ export default function GastosPage() {
     }
     return { totalGeneral, totalHoy, totalMes };
   }, [gastos]);
+
+  const { selected, toggle, selectAll, clear, allSelected } = useBulkSelect(gastos);
+
+  async function handleBulkDelete() {
+    const ids = [...selected];
+    if (ids.length === 0) return;
+    setBulkDeleting(true);
+    const supabase = createClient();
+    await supabase.from("gastos").delete().in("id", ids);
+    setBulkDeleting(false);
+    clear();
+    setBulkOpen(false);
+    await load();
+  }
 
   function openNew() {
     setEditing(null);
@@ -156,8 +174,25 @@ export default function GastosPage() {
         />
       ) : (
         <Card className="divide-y divide-slate-100 p-0 dark:divide-slate-800">
+          <div className="flex items-center gap-3 px-5 py-2.5">
+            <input
+              type="checkbox"
+              checked={allSelected}
+              onChange={selectAll}
+              className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-800"
+            />
+            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+              Seleccionar todos
+            </span>
+          </div>
           {gastos.map((g) => (
             <div key={g.id} className="flex items-center gap-3 px-5 py-3.5">
+              <input
+                type="checkbox"
+                checked={selected.has(g.id)}
+                onChange={() => toggle(g.id)}
+                className="h-4 w-4 shrink-0 rounded border-slate-300 text-brand-600 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-800"
+              />
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400">
                 <ReceiptText className="h-5 w-5" />
               </div>
@@ -284,6 +319,35 @@ export default function GastosPage() {
           </button>
         </div>
       </Modal>
+
+      {/* Confirmar eliminación en lote */}
+      <Modal
+        open={bulkOpen}
+        onClose={() => setBulkOpen(false)}
+        title="Eliminar gastos"
+      >
+        <p className="text-sm text-slate-600 dark:text-slate-300">
+          ¿Eliminar {selected.size} gasto{selected.size !== 1 ? "s" : ""}? Esta
+          acción no se puede deshacer.
+        </p>
+        <div className="mt-6 flex gap-3">
+          <button onClick={() => setBulkOpen(false)} className="btn-secondary flex-1">
+            Cancelar
+          </button>
+          <button onClick={handleBulkDelete} disabled={bulkDeleting} className="btn-danger flex-1">
+            {bulkDeleting ? "Eliminando…" : "Eliminar"}
+          </button>
+        </div>
+      </Modal>
+
+      {selected.size > 0 && (
+        <BulkBar
+          count={selected.size}
+          onClear={clear}
+          onDelete={() => setBulkOpen(true)}
+          deleting={bulkDeleting}
+        />
+      )}
     </div>
   );
 }
