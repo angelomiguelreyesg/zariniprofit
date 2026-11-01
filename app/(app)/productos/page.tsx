@@ -93,12 +93,9 @@ export default function ProductosPage() {
 
   const stats = useMemo(() => {
     const valorInventario = productos.reduce((a, p) => a + p.precio_venta * p.stock, 0);
-    const gananciaPotencial = productos.reduce(
-      (a, p) => a + (p.precio_venta - p.costo) * p.stock,
-      0,
-    );
+    const unidades = productos.reduce((a, p) => a + p.stock, 0);
     const bajo = productos.filter((p) => p.stock <= 5).length;
-    return { valorInventario, gananciaPotencial, bajo };
+    return { valorInventario, unidades, bajo };
   }, [productos]);
 
   function openNew() {
@@ -190,7 +187,7 @@ export default function ProductosPage() {
 
       <div className="grid grid-cols-3 gap-4">
         <MiniStat label="Valor inventario" value={formatMoney(stats.valorInventario, moneda)} />
-        <MiniStat label="Ganancia potencial" value={formatMoney(stats.gananciaPotencial, moneda)} tone="green" />
+        <MiniStat label="Unidades en stock" value={String(stats.unidades)} tone="green" />
         <MiniStat label="Stock bajo" value={String(stats.bajo)} tone="amber" />
       </div>
 
