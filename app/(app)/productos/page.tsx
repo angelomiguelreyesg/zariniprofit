@@ -92,7 +92,7 @@ export default function ProductosPage() {
   }, [productos, busqueda, categoriaFiltro]);
 
   const stats = useMemo(() => {
-    const valorInventario = productos.reduce((a, p) => a + p.costo * p.stock, 0);
+    const valorInventario = productos.reduce((a, p) => a + p.precio_venta * p.stock, 0);
     const gananciaPotencial = productos.reduce(
       (a, p) => a + (p.precio_venta - p.costo) * p.stock,
       0,
