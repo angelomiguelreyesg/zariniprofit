@@ -14,9 +14,3 @@ Construida con **Next.js 15 (App Router) + TypeScript + TailwindCSS + Supabase (
 - **Reportes** por rango de fechas, gráficas por método de pago y categoría, y **exportación a CSV**.
 - **Ajustes** de perfil (nombre, negocio, moneda).
 - Totalmente **responsive** (sidebar en escritorio, barra inferior en móvil).
-
-## Scripts
-
-- `npm run dev` — servidor de desarrollo.
-- `npm run build` — compilar para producción.
-- `npm start` — iniciar en producción.
