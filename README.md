@@ -2,8 +2,6 @@
 
 Aplicación moderna para controlar tu negocio: inventario, ventas, gastos, ganancias y reportes. Diseñada para funcionar perfecto en teléfono y computador.
 
-Construida con **Next.js 15 (App Router) + TypeScript + TailwindCSS + Supabase (Auth + Postgres)** y lista para desplegar en **Vercel**.
-
 ## Funcionalidades
 
 - **Login / Registro** con email y contraseña (verificación de email opcional) y recuperación de contraseña.
